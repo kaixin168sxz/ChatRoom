@@ -24,17 +24,15 @@ def login():
         .x-center {
             margin: auto;
             width: 50%;
-        }
-        .card {
-            padding-bottom: 50px;
         }''')
+    ui.query('body').style(f'background-color: #ddeeff')
     if app.storage.user.get('authenticated', False):
         return RedirectResponse('/')
     def try_login():
         app.storage.user.update({'username': username.value, 'authenticated': True})
         ui.navigate.to(app.storage.user.get('referrer_path', '/'))
-    with ui.card().classes('absolute-center card'):
-        ui.label('欢迎来到聊天室！').classes('subtitle')
+    with ui.card().classes('absolute-center').style(f'background-color: #edf7ff'):
+        ui.label('欢迎来到聊天室').classes('subtitle')
         username = ui.input('用户').classes('fill').props('dense outlined')
         password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined')
         with ui.button('登录', on_click=try_login).classes('x-center').props('rounded outline'):
