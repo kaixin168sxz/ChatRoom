@@ -4,7 +4,6 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from nicegui import Client, app, ui
 from datetime import datetime
 from typing import List, Tuple
-from uuid import uuid4
 
 unrestricted_page_routes = {'/login'}
 messages: List[Tuple[str, str, str, str]] = []
@@ -43,9 +42,9 @@ def login():
             ui.tooltip('登录到聊天室').classes('bg-green')
 
 @ui.refreshable
-def chat_messages(own_id: str) -> None:
+def chat_messages(name) -> None:
     for user_id, avatar, text, stamp in messages:
-        ui.chat_message(text=text, stamp=stamp, avatar=avatar, sent=own_id == user_id, name=app.storage.user.get('username'))
+        ui.chat_message(text=text, stamp=stamp, avatar=avatar, sent=name == user_id, name=user_id)
     ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
 @ui.page('/')
@@ -61,22 +60,22 @@ async def main():
     ui.button('注销', on_click=logout)
 
     def send() -> None:
-        stamp = datetime.utcnow().strftime('%X')
+        stamp = datetime.now().strftime('%X')
         messages.append((user_id, avatar, text.value, stamp))
         text.value = ''
         chat_messages.refresh()
 
-    user_id = str(uuid4())
-    avatar = f'https://robohash.org/{user_id}?bgset=bg2'
+    user_id = app.storage.user.get('username')
+    avatar = 'http://192.168.0.108:666/9.72-Nicegui/2.jpg'
 
     ui.add_css(r'a:link, a:visited {color: inherit !important; text-decoration: none; font-weight: 500}')
     with ui.footer().classes('bg-white'), ui.column().classes('w-full max-w-3xl mx-auto my-6'):
         with ui.row().classes('w-full no-wrap items-center'):
-            with ui.avatar().on('click', lambda: ui.navigate.to(main)):
+            with ui.avatar(color='#B0B0B0').on('click', lambda: ui.navigate.to(main)):
                 ui.image(avatar)
-            text = ui.input(placeholder='message').on('keydown.enter', send) \
-                .props('rounded outlined input-class=mx-3').classes('flex-grow')
-        ui.markdown('simple chat app built with [NiceGUI](https://nicegui.io)') \
+            text = ui.input('请输入消息').on('keydown.enter', send) \
+                .props('dense outlined input-class=mx-3').classes('flex-grow')
+        ui.markdown('[Copyright © 2025 kaixin168sxz](https://github.com/kaixin168sxz/ChatRoom)') \
             .classes('text-xs self-end mr-8 m-[-1em] text-primary')
 
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
