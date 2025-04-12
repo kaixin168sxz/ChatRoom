@@ -1,17 +1,11 @@
-import hashlib
+from nicegui import ui
 
-def md5_encrypt(data):
-    md5 = hashlib.md5()
-    md5.update(data.encode('utf-8'))
-    return md5.hexdigest()
+with ui.element('q-fab').props('icon=navigation color=green'):
+    ui.element('q-fab-action').props('icon=train color=green-5') \
+        .on('click', lambda: ui.notify('train'))
+    ui.element('q-fab-action').props('icon=sailing color=green-5') \
+        .on('click', lambda: ui.notify('boat'))
+    ui.element('q-fab-action').props('icon=rocket color=green-5') \
+        .on('click', lambda: ui.notify('rocket'))
 
-# 测试示例
-# data = "你好"
-# encrypted_data = md5_encrypt(data)
-# print("加密前的数据：", data)
-# print("加密后的数据：", encrypted_data)
-
-data = "哈哈"
-encrypted_data = md5_encrypt(data)
-print("加密前的数据：", data)
-print("加密后的数据：", encrypted_data)
+ui.run()
