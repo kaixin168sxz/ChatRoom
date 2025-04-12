@@ -15,7 +15,7 @@ def print(text: str) -> None:
                 tmp_list = text.split('\033')
                 for tmp in tmp_list:
                     if 'm' in tmp:
-                        tmp_text += ''.join(tmp.split('m')[1:])
+                        tmp_text += 'm'.join(tmp.split('m')[1:])
                     else:
                         tmp_text += tmp
                 text = tmp_text
