@@ -37,9 +37,9 @@ def login():
     with ui.card().classes('absolute-center').style(f'background-color: #edf7ff'):
         ui.label('欢迎来到聊天室').classes('subtitle')
         username = ui.input('用户').classes('fill').props('dense outlined')
-        password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined')
+        password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined').on('keydown.enter', try_login)
         with ui.button('登录', on_click=try_login).classes('x-center').props('rounded outline'):
-            ui.tooltip('登录到聊天室').classes('bg-green')
+            ui.tooltip('欢迎来到聊天室').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
 
 @ui.refreshable
 def chat_messages(name) -> None:
@@ -56,8 +56,10 @@ async def main():
         app.storage.user.clear()
         ui.navigate.to(app.storage.user.get('referrer_path', '/'))
 
-    ui.label(app.storage.user.get('username'))
-    ui.button('注销', on_click=logout)
+    with ui.header(elevated=True).style('background-color: #3874c8').classes('items-center'):
+        ui.label(app.storage.user.get('username'))
+        with ui.button(icon='logout', on_click=logout).props('rounded'):
+            ui.tooltip('注销').classes('bg-red').props('transition-show="scale" transition-hide="scale"')
 
     def send() -> None:
         stamp = datetime.now().strftime('%X')
@@ -71,14 +73,19 @@ async def main():
     ui.add_css(r'a:link, a:visited {color: inherit !important; text-decoration: none; font-weight: 500}')
     with ui.footer().classes('bg-white'), ui.column().classes('w-full max-w-3xl mx-auto my-6'):
         with ui.row().classes('w-full no-wrap items-center'):
-            with ui.avatar(color='#B0B0B0').on('click', lambda: ui.navigate.to(main)):
-                ui.image(avatar)
-            text = ui.input('请输入消息').on('keydown.enter', send) \
-                .props('dense outlined input-class=mx-3').classes('flex-grow')
-        ui.markdown('[Copyright © 2025 kaixin168sxz](https://github.com/kaixin168sxz/ChatRoom)') \
-            .classes('text-xs self-end mr-8 m-[-1em] text-primary')
+            with ui.column():
+                with ui.avatar(color='#B0B0B0', ).on('click', lambda: ui.navigate.to(main)):
+                    ui.image(avatar)
+                with ui.row().classes('items-center'):
+                    ui.label(user_id).classes('text-s self-end mr-8 m-[-1em] text-black')
+            text = ui.input('请输入消息').on('keydown.enter', send).props('dense outlined input-class=mx-3').classes('flex-grow')
+        with ui.row().classes('w-full no-wrap'):
+            ui.space()
+            ui.markdown('使用[Nicegui](https://nicegui.io/)制作').classes('text-xs self-end mr-8 m-[-1em] text-primary')
+            ui.markdown('[Copyright © 2025 kaixin168sxz](https://github.com/kaixin168sxz/ChatRoom)').classes('text-xs self-end mr-8 m-[-1em] text-primary')
 
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
+
     with ui.column().classes('w-full max-w-2xl mx-auto items-stretch'):
         chat_messages(user_id)
 
