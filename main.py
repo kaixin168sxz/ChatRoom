@@ -49,6 +49,15 @@ def chat_messages(name) -> None:
 
 @ui.page('/')
 async def main():
+    ui.add_css('''
+        .subtitle {
+            font-size: 20px;
+        }
+        .x-center {
+            margin: auto;
+            width: 50%;
+        }''')
+
     if not app.storage.user.get('authenticated', False):
         return RedirectResponse('/login')
 
@@ -73,15 +82,14 @@ async def main():
     ui.add_css(r'a:link, a:visited {color: inherit !important; text-decoration: none; font-weight: 500}')
     with ui.footer().classes('bg-white'), ui.column().classes('w-full max-w-3xl mx-auto my-6'):
         with ui.row().classes('w-full no-wrap items-center'):
-            with ui.column():
+            with ui.column().style(f'background-color: #ddeeff').classes('items-center gap-0'):
                 with ui.avatar(color='#B0B0B0', ).on('click', lambda: ui.navigate.to(main)):
                     ui.image(avatar)
-                with ui.row().classes('items-center'):
-                    ui.label(user_id).classes('text-s self-end mr-8 m-[-1em] text-black')
+                ui.label(user_id[:-3]+'...' if len(user_id) > 7 else user_id).classes('text-s text-black')
+
             text = ui.input('请输入消息').on('keydown.enter', send).props('dense outlined input-class=mx-3').classes('flex-grow')
         with ui.row().classes('w-full no-wrap'):
             ui.space()
-            ui.markdown('使用[Nicegui](https://nicegui.io/)制作').classes('text-xs self-end mr-8 m-[-1em] text-primary')
             ui.markdown('[Copyright © 2025 kaixin168sxz](https://github.com/kaixin168sxz/ChatRoom)').classes('text-xs self-end mr-8 m-[-1em] text-primary')
 
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
