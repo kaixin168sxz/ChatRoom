@@ -202,7 +202,7 @@ class ChatRoomDB(Sqlite3DB):
             print('+-----------------------------------------------------------+\n'
                   '| \033[1;33mWARNING\033[0m: datatime.now() is not the same as arg send_time! |\n'
                   '+-----------------------------------------------------------+')
-        self.insert_data(self.messages_table, self.messages_cols, (user, message, send_time, file_url))
+        # self.insert_data(self.messages_table, self.messages_cols, (user, message, send_time, file_url))
 
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         length_list = [len(i) + 19 for i in (user, message, send_time, file_url, now)]  # 19是信息前提示词的宽度("| User        ->   "...)
@@ -212,15 +212,15 @@ class ChatRoomDB(Sqlite3DB):
         max_length += 1
         print( '+---------------------------------'                 + '-' * (max_length - length_list[5]) + '+\n' +
                '| \033[1;34mINFO\033[0m: send message successfully:'+ ' ' * (max_length - length_list[6]) + '|\n' +
-              f'| User        ->   {user}'                            + ' ' * (max_length - length_list[0]) + '|\n' +
-              f'| Message     ->   {message}'                         + ' ' * (max_length - length_list[1]) + '|\n' +
-              f'| Time        ->   {send_time}'                       + ' ' * (max_length - length_list[2]) + '|\n' +
-              f'| File        ->   {file_url}'                        + ' ' * (max_length - length_list[3]) + '|\n' +
-              f'| Time(Log)   ->   {now}'                             + ' ' * (max_length - length_list[4]) + '|\n' +
+              f'| User        ->   {user}'                          + ' ' * (max_length - length_list[0]) + '|\n' +
+              f'| Message     ->   {message}'                       + ' ' * (max_length - length_list[1]) + '|\n' +
+              f'| Time        ->   {send_time}'                     + ' ' * (max_length - length_list[2]) + '|\n' +
+              f'| File        ->   {file_url}'                      + ' ' * (max_length - length_list[3]) + '|\n' +
+              f'| Time(Log)   ->   {now}'                           + ' ' * (max_length - length_list[4]) + '|\n' +
                '+---------------------------------'                 + '-' * (max_length - length_list[5]) + '+')
         return OK
 
-    def log_in(self, user: str, password: str, email: str, note: str=''):
+    def sign_up(self, user: str, password: str, email: str, note: str=''):
         password = md5_encrypt(password)
         try:
             self.insert_data(self.user_table, self.user_cols, (user, password, email, note))
@@ -234,16 +234,16 @@ class ChatRoomDB(Sqlite3DB):
             now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             length_list = [len(i)+19 for i in (user, password, email, note, now)]      # 19是信息前提示词的宽度("| Name        ->   "...)
             length_list.append(len('+-----------------------------------'))
-            length_list.append(len('| INFO: user logged in successfully:'))
+            length_list.append(len('| INFO: user singed up successfully:'))
             max_length = max(length_list)
             max_length += 1
             print( '+-----------------------------------'                  + '-' * (max_length - length_list[5]) + '+\n'+
-                   '| \033[1;34mINFO\033[0m: user logged in successfully:' + ' ' * (max_length - length_list[6]) + '|\n'+
-                  f'| Name        ->   {user}'                              + ' ' * (max_length - length_list[0]) + '|\n'+
-                  f'| Email       ->   {email}'                             + ' ' * (max_length - length_list[2]) + '|\n'+
-                  f'| Password    ->   {password}'                          + ' ' * (max_length - length_list[1]) + '|\n'+
-                  f'| Note        ->   {note}'                              + ' ' * (max_length - length_list[3]) + '|\n'+
-                  f'| Time(Log)   ->   {now}'                               + ' ' * (max_length - length_list[4]) + '|\n' +
+                   '| \033[1;34mINFO\033[0m: user singed up successfully:' + ' ' * (max_length - length_list[6]) + '|\n'+
+                  f'| Name        ->   {user}'                             + ' ' * (max_length - length_list[0]) + '|\n'+
+                  f'| Email       ->   {email}'                            + ' ' * (max_length - length_list[2]) + '|\n'+
+                  f'| Password    ->   {password}'                         + ' ' * (max_length - length_list[1]) + '|\n'+
+                  f'| Note        ->   {note}'                             + ' ' * (max_length - length_list[3]) + '|\n'+
+                  f'| Time(Log)   ->   {now}'                              + ' ' * (max_length - length_list[4]) + '|\n' +
                    '+-----------------------------------'                  + '-' * (max_length - length_list[5]) + '+')
             return OK
 
@@ -251,9 +251,3 @@ class ChatRoomDB(Sqlite3DB):
         data = self.look_for_data(self.user_table, ('name', self.user_cols[0], user))
         data = NO_EXISTS if not data else data[0]
         return data
-
-if __name__ == '__main__':
-    crdb = ChatRoomDB('./Database/chatroom.db')
-    crdb.log_in('admin', 'sj110608', 'kaixin168kx@163.com')
-    crdb.log_in('kaixin', 'sj110608', 'kaixin168kx@163.com')
-    crdb.log_in('aaa', 'sj110608', 'kaixin168kx@163.com')
