@@ -61,7 +61,7 @@ def login():
         ui.label('欢迎来到聊天室').classes('subtitle')
         username = ui.input('用户').classes('fill').props('dense outlined')
         password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined').on('keydown.enter', try_login)
-        with ui.button('登录', on_click=try_login).classes('x-center bg-green').props('size=md'):
+        with ui.button('登录', on_click=try_login).classes('x-center bg-green').props('size=md push'):
             ui.tooltip('欢迎来到聊天室').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
 
 @ui.refreshable
@@ -80,7 +80,8 @@ async def main():
             color: inherit !important; 
             text-decoration: none; 
             font-weight: 500
-        }''')
+        }
+        ''')
 
     if not app.storage.user.get('authenticated', False):
         return RedirectResponse('/login')
@@ -111,17 +112,17 @@ async def main():
     avatar = 'http://192.168.0.108:666/9.72-Nicegui/2.jpg'
 
     with ui.header(elevated=True).style('background-color: #8bbcff').classes('items-center p-1'):
-        with ui.row().classes('items-center gap-2'):
+        with ui.row().classes('w-full items-center gap-2'):
             with ui.card().style('background-color: #579fff').classes('p-1').props('flat bordered'):
                 with ui.row().classes('items-center gap-3'):
                     with ui.avatar(color='#B0B0B0', size='lg').on('click', lambda: ui.navigate.to(main)):
                         ui.image(avatar)
                     with ui.column().classes('items-center gap-0'):
                         ui.label(user_id[:9] + '...' if len(user_id) > 10 else user_id).classes('text-s text-white')
-                        with ui.button(icon='logout', on_click=logout).props('size=sm').classes('bg-green'):
+                        with ui.button(icon='logout', on_click=logout).props('size=sm push').classes('bg-green'):
                             ui.tooltip('注销').classes('bg-red').props('transition-show="scale" transition-hide="scale"')
-            ui.space()
-
+            time_label = ui.label(text=str(datetime.now().strftime("%X"))).classes('text-lg absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%]')
+            ui.timer(1.0, lambda: time_label.set_text(str(datetime.now().strftime("%X"))))
 
     with ui.footer().classes('bg-white'), ui.column().classes('w-full max-w-3xl mx-auto my-6'):
         with ui.row().classes('w-full no-wrap items-center'):
