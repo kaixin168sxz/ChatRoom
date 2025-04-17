@@ -251,3 +251,20 @@ class ChatRoomDB(Sqlite3DB):
         data = self.look_for_data(self.user_table, ('name', self.user_cols[0], user))
         data = NO_EXISTS if not data else data[0]
         return data
+
+    def get_all_users(self) -> list | str:
+        table = self.look_for_data(self.user_table, ('table','*'))
+        data = []
+        for i in table:
+            data.append(i[1])
+        data = NO_EXISTS if not data else data
+        return data
+
+    def get_all_emails(self) -> list | str:
+        users = self.look_for_data(self.user_table, ('table','*'))
+        data = []
+        for i in users:
+            if i[-1] == 'EmailSend':
+                data.append(i)
+        data = NO_EXISTS if not data else data
+        return data

@@ -1,2 +1,12 @@
 .idea
 .nicegui
+build
+chatroom.log
+main.c
+main.pyd
+.venv
+.venv_linux
+main.so
+run.py
+main.py
+setup.py

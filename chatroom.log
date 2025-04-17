@@ -1,52 +1,519 @@
-+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-| INFO: user singed up successfully:                                                                                                                                    |
-| Name        ->   a                                                                                                                                                    |
-| Email       ->                                                                                                                                                        |
-| Password    ->   8lkefytq5ivswhu64301ak1a08jbg1a1ajkif1a91a1aff1ak1a08jbg01ak1a08jbg1a1ajkif01ak1a08jbg1a1ajkif1a951a1ad1a01ak1a08jbg1a1ajkifd1abe958bf01a9zd2scm86fw |
-| Note        ->   EmailNoSend                                                                                                                                          |
-| Time(Log)   ->   2025-04-12 22:57:55                                                                                                                                  |
-+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   æ                   |
+| Time        ->   2025/04/13 22:07:00 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:07:00 |
++--------------------------------------+
 
-+-------------------------------+
-| ERR: User "a" already exists. |
-+-------------------------------+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   ֶ                   |
+| Time        ->   2025/04/13 22:07:06 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:07:06 |
++--------------------------------------+
 
-+-------------------------------+
-| ERR: User "a" already exists. |
-+-------------------------------+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   jjjʝ                |
+| Time        ->   2025/04/13 22:07:24 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:07:24 |
++--------------------------------------+
 
-+-------------------------------+
-| ERR: User "a" already exists. |
-+-------------------------------+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   你好                  |
+| Time        ->   2025/04/13 22:07:27 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:07:27 |
++--------------------------------------+
 
-+----------------------------------------------------------------------------------------------------------------------------------------+
-| INFO: user singed up successfully:                                                                                                     |
-| Name        ->   aaa                                                                                                                   |
-| Email       ->   asas@asas                                                                                                             |
-| Password    ->   o7u2sptj01w34r5ed1ak1a08jbgcf1a01ak1a08jbg1ak1a08jbg1a93fcf5ff3381a1ak1a08jbge1ad01ak1a08jbg1a1ajkif7d3441abla19ghnvm |
-| Note        ->   EmailNoSend                                                                                                           |
-| Time(Log)   ->   2025-04-12 22:58:13                                                                                                   |
-+----------------------------------------------------------------------------------------------------------------------------------------+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   ά                   |
+| Time        ->   2025/04/13 22:07:41 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:07:41 |
++--------------------------------------+
 
-+-------------------------------------------------------------------------------------------------------------------------+
-| INFO: user singed up successfully:                                                                                      |
-| Name        ->                                                                                                          |
-| Email       ->                                                                                                          |
-| Password    ->   unfcearzj071wt28f581a9d1a1a1a1ak1a08jbgc91ae01ak1a08jbg1a1ajkif1ab9dd1ak1a08jbgc9d1a71a8c8b5e234rskhpd |
-| Note        ->   EmailSend                                                                                              |
-| Time(Log)   ->   2025-04-12 23:02:30                                                                                    |
-+-------------------------------------------------------------------------------------------------------------------------+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   aaå                 |
+| Time        ->   2025/04/13 22:07:45 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:07:45 |
++--------------------------------------+
 
-+-------------------------------+
-| ERR: User "a" already exists. |
-+-------------------------------+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   שׁ                   |
+| Time        ->   2025/04/13 22:07:49 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:07:49 |
++--------------------------------------+
 
-+---------------------------------------------------------------------------------------------------+
-| INFO: user singed up successfully:                                                                |
-| Name        ->   aasasasasasasas                                                                  |
-| Email       ->                                                                                    |
-| Password    ->   p4wnf8ha5d0yrbgm5f941ak1a08jbg747ec1a3e41ak1a08jbg5304c8b1af1a4e01ad541vsc9ez5kf |
-| Note        ->   EmailNoSend                                                                      |
-| Time(Log)   ->   2025-04-12 23:06:20                                                              |
-+---------------------------------------------------------------------------------------------------+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   ª                   |
+| Time        ->   2025/04/13 22:07:57 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:07:57 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   ύ                   |
+| Time        ->   2025/04/13 22:08:06 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:08:06 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   ꝡ                   |
+| Time        ->   2025/04/13 22:08:13 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:08:13 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   ɣ                   |
+| Time        ->   2025/04/13 22:08:19 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:08:19 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   @                   |
+| Time        ->   2025/04/13 22:08:23 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:08:23 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   ss                  |
+| Time        ->   2025/04/13 22:08:25 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:08:25 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   ą                   |
+| Time        ->   2025/04/13 22:08:30 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:08:30 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/13 22:59:21 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 22:59:21 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/13 23:00:57 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-13 23:00:57 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:35:25 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:35:25 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:36:34 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:36:34 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:38:49 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:38:49 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:41:12 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:41:12 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:42:43 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:42:43 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:43:55 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:43:55 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:44:04 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:44:04 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:44:04 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:44:04 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:44:05 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:44:05 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:44:22 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:44:22 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:44:22 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:44:22 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:51:12 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:51:12 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:52:55 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:52:55 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:55:31 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:55:31 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:55:59 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:55:59 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 21:59:11 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 21:59:11 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 22:01:23 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:01:23 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 22:02:23 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:02:23 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 22:03:05 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:03:05 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 22:03:59 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:03:59 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 22:04:26 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:04:26 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 22:06:06 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:06:06 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 22:07:30 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:07:30 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   大家好                 |
+| Time        ->   2025/04/16 22:08:25 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:08:25 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 22:15:07 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:15:07 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: user signed out successfully:  |
+| User        ->   kaixin              |
+| Time(Log)   ->   2025-04-16 22:25:13 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: user signed in successfully:   |
+| User        ->   admin               |
+| Time(Log)   ->   2025-04-16 22:35:19 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: user signed out successfully:  |
+| User        ->   admin               |
+| Time(Log)   ->   2025-04-16 22:45:20 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: user signed in successfully:   |
+| User        ->   admin               |
+| Time(Log)   ->   2025-04-16 22:45:36 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 22:47:37 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:47:37 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   kaixin              |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 22:49:51 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 22:49:51 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:04:41 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:04:41 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:04:44 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:04:44 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:04:45 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:04:45 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:06:04 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:06:04 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:06:06 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:06:06 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:07:17 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:07:17 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:07:19 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:07:19 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:08:14 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:08:14 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 23:11:07 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:11:07 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:11:09 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:11:09 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   你好                  |
+| Time        ->   2025/04/16 23:12:10 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:12:10 |
++--------------------------------------+
+
++--------------------------------------+
+| INFO: send message successfully:     |
+| User        ->   admin               |
+| Message     ->   nihao               |
+| Time        ->   2025/04/16 23:12:12 |
+| File        ->   NoFiles             |
+| Time(Log)   ->   2025-04-16 23:12:12 |
++--------------------------------------+
 
