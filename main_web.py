@@ -1,22 +1,22 @@
+import os
 from copy import copy
-
+from datetime import datetime
+from email.mime.text import MIMEText
+from time import time
+from typing import List, Tuple
+import aiosmtplib
 from fastapi import Request
 from fastapi.responses import RedirectResponse
+from nicegui import Client, app
+from nicegui import ui
 from starlette.middleware.base import BaseHTTPMiddleware
-from nicegui import Client, app, ui
-from datetime import datetime
-from typing import List, Tuple
 from db import ChatRoomDB, md5_encrypt
 from settings import *
-from email.mime.text import MIMEText
-import aiosmtplib
-import logging
-from time import time
 
 time_before = 0
 
-from_addr = 'Your Email'
-email_password = 'Password'
+from_addr = 'YOUR_EMAIL_ADDRESS'
+email_password = 'YOUR_EMAIL_PASSWORD'
 
 async def sendemail(msg_to, subject, content):
     msg = MIMEText(content, 'plain', 'utf-8')
@@ -29,13 +29,15 @@ async def sendemail(msg_to, subject, content):
         await smtp.connect(hostname='smtp.qq.com', port=25)
         await smtp.login(from_addr, email_password)
         await smtp.send_message(msg)
+        print(f'邮件已发送，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     except aiosmtplib.SMTPException as e:
-        logging.error('sendemail:%s'%e)
+        print(f'邮件发送失败: {e}，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 
 unrestricted_page_routes = {'/signin', '/signup'}
 messages: List[Tuple[str, str, str, str]] = []
 db = ChatRoomDB('./Database/chatroom.db')
-avatars = {'admin': 'http://192.168.0.108:666/9.72-Nicegui/2.jpg', 'kaixin': 'http://192.168.0.108:666/9.72-Nicegui/1.jpg'}
+avatars = {}
+default_avatar = ''
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -156,8 +158,12 @@ async def main():
     user_id = app.storage.user.get('username')
     if user_id in avatars:
         avatar = avatars[user_id]
+    elif default_avatar:
+        avatar = default_avatar
     else:
-        avatar = 'http://192.168.0.108:666/9.72-Nicegui/I1F.png'
+        avatar = ''
+
+    ui.query('body').style(f'background-color: rgb(247,255,247)')
 
     with ui.header(elevated=True).style('background-color: rgb(147,207,150)').classes('items-center p-1'):
         with ui.row().classes('w-full items-center gap-2'):
@@ -178,7 +184,7 @@ async def main():
             ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green')
         with ui.row().classes('w-full no-wrap'):
             ui.space()
-            ui.markdown('[Copyright © 2025 kaixin168sxz](https://github.com/kaixin168sxz/ChatRoom)').classes('text-xs self-end mr-8 m-[-1em] text-green')
+            ui.markdown('[Copyright © 2025 宋昕哲(kaixin168sxz) 使用MIT协议开源](https://github.com/kaixin168sxz/ChatRoom)').classes('text-xs self-end mr-8 m-[-1em] text-green')
 
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
 
@@ -232,5 +238,52 @@ def signup() -> None:
             ui.space()
             ui.link('登录用户', signin).classes('text-xs text-green')
 
+def update_ui_log(text):
+    text.clear()
+    with open('./chatroom.log', 'r', encoding='utf-8') as f:
+        for i in f.read().splitlines()[-100: ]:
+            text.push(i)
+
+@ui.page('/dev')
+def developer() -> None:
+    ui.add_css('''
+        .subtitle {
+            font-size: 20px;
+        }
+        .x-center {
+            margin: auto;
+            width: 50%;
+        }''')
+    ui.colors(primary='rgb(68,157,72)')
+
+    if app.storage.user.get('username') not in ['admin', 'debugger', 'kaixin']:
+        def return_to_main_page() -> None:
+            dialog.close()
+            ui.navigate.to(app.storage.user.get('referrer_path', '/'))
+        with ui.dialog() as dialog, ui.card():
+            ui.label('权限不足，无法访问开发者控制台')
+            ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
+        dialog.open()
+    ui.query('body').style(f'background-color: rgb(247,255,247)')
+    ui.label(f'Hi, {app.storage.user.get("username")}').classes('subtitle')
+    ui.button('RTL(实时日志)', on_click=lambda: ui.navigate.to(app.storage.user.get('referrer_path', '/dev/log'))).classes('bg-green').props('size=md push')
+
+@ui.page('/dev/log')
+def dev_log() -> None:
+    ui.colors(primary='rgb(68,157,72)')
+    if app.storage.user.get('username') not in ['admin', 'debugger', 'kaixin']:
+        def return_to_main_page() -> None:
+            dialog.close()
+            ui.navigate.to(app.storage.user.get('referrer_path', '/'))
+        with ui.dialog() as dialog, ui.card():
+            ui.label('权限不足，无法访问开发者控制台')
+            ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
+        dialog.open()
+    ui.query('body').style(f'background-color: rgb(247,255,247)')
+    ui.label('RealTimeLog(实时日志):')
+    text = ui.log(max_lines=100).classes('w-full h-100 scroll-snap-type scroll-snap-align')
+    ui.button('下载日志文件', on_click=lambda: ui.download('./chatroom.log')).classes('x-center bg-green').props('size=md push')
+    ui.timer(1.0, lambda: update_ui_log(text))
+
 def run() -> None:
-    ui.run(port=66, storage_secret='THIS_NEEDS_TO_BE_CHANGED', language='zh-CN')
+    ui.run(port=66, storage_secret='PASSWD', language='zh-CN', title='ChatRoom聊天室')
