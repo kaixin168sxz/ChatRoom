@@ -1,4 +1,3 @@
-import os
 from copy import copy
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -7,14 +6,12 @@ from typing import List, Tuple
 import aiosmtplib
 from fastapi import Request
 from fastapi.responses import RedirectResponse
-from nicegui import Client, app
-from nicegui import ui
+from nicegui import Client, app, ui
 from starlette.middleware.base import BaseHTTPMiddleware
 from db import ChatRoomDB, md5_encrypt
 from settings import *
 
 time_before = 0
-
 from_addr = 'YOUR_EMAIL_ADDRESS'
 email_password = 'YOUR_EMAIL_PASSWORD'
 
@@ -36,6 +33,7 @@ async def sendemail(msg_to, subject, content):
 unrestricted_page_routes = {'/signin', '/signup'}
 messages: List[Tuple[str, str, str, str]] = []
 db = ChatRoomDB('./Database/chatroom.db')
+
 avatars = {}
 default_avatar = ''
 
@@ -60,8 +58,8 @@ def signin():
             width: 50%;
         }''')
     ui.colors(primary='rgb(68,157,72)')
-
     ui.query('body').style(f'background-color: rgb(247,255,247)')
+
     if app.storage.user.get('authenticated', False):
         return RedirectResponse('/')
     def try_signin():
@@ -86,7 +84,7 @@ def signin():
               f'| Time(Log)   ->   {now}'                             + ' ' * (max_length - length_list[1]) + '|\n' +
               '+-----------------------------------'                  + '-' * (max_length - length_list[2]) + '+')
         app.storage.user.update({'username': user, 'authenticated': True})
-        ui.navigate.to(app.storage.user.get('referrer_path', '/'))
+        ui.navigate.to('/')
     with ui.card().classes('absolute-center').style(f'background-color: rgb(235,255,235)').props('flat bordered'):
         ui.label('欢迎来到聊天室').classes('subtitle')
         username = ui.input('用户').classes('fill').props('dense outlined')
@@ -131,9 +129,8 @@ async def main():
               f'| User        ->   {user_id}'                           + ' ' * (max_length - length_list[0]) + '|\n' +
               f'| Time(Log)   ->   {now}'                               + ' ' * (max_length - length_list[1]) + '|\n' +
                '+-----------------------------------'                   + '-' * (max_length - length_list[2]) + '+')
-
         app.storage.user.clear()
-        ui.navigate.to(app.storage.user.get('referrer_path', '/signin'))
+        ui.navigate.to('/signin')
 
     async def send() -> None:
         global time_before
@@ -156,6 +153,7 @@ async def main():
                 await sendemail(i[-2], f'你收到了一条来自{user_id}的消息【聊天室】', text_value)
 
     user_id = app.storage.user.get('username')
+
     if user_id in avatars:
         avatar = avatars[user_id]
     elif default_avatar:
@@ -218,7 +216,7 @@ def signup() -> None:
             ui.notify('用户名已存在', type='warning', position='top')
             return
         ui.notify('注册成功', type='info', position='top')
-        ui.navigate.to(app.storage.user.get('referrer_path', '/signin'))
+        ui.navigate.to('/signin')
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')
     with ui.card().classes('absolute-center').style(f'background-color: rgb(235,255,235)').props('flat bordered'):
@@ -255,26 +253,36 @@ def developer() -> None:
             width: 50%;
         }''')
     ui.colors(primary='rgb(68,157,72)')
-
-    if app.storage.user.get('username') not in ['admin', 'debugger', 'kaixin']:
+    user_id = app.storage.user.get('username')
+    if user_id not in ['admin', 'debugger', 'kaixin']:
         def return_to_main_page() -> None:
             dialog.close()
-            ui.navigate.to(app.storage.user.get('referrer_path', '/'))
+            ui.navigate.to('/')
         with ui.dialog() as dialog, ui.card():
             ui.label('权限不足，无法访问开发者控制台')
             ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
         dialog.open()
     ui.query('body').style(f'background-color: rgb(247,255,247)')
-    ui.label(f'Hi, {app.storage.user.get("username")}').classes('subtitle')
-    ui.button('RTL(实时日志)', on_click=lambda: ui.navigate.to(app.storage.user.get('referrer_path', '/dev/log'))).classes('bg-green').props('size=md push')
+    ui.label(f'Hi, {user_id}').classes('subtitle')
+    ui.link('实时日志', dev_log).classes('text-green')
+    ui.link('运行代码', dev_code).classes('text-green')
 
-@ui.page('/dev/log')
+@ui.page('/log')
 def dev_log() -> None:
+    ui.add_css('''
+        .subtitle {
+            font-size: 20px;
+        }
+        .x-center {
+            margin: auto;
+            width: 50%;
+        }''')
     ui.colors(primary='rgb(68,157,72)')
-    if app.storage.user.get('username') not in ['admin', 'debugger', 'kaixin']:
+    user_id = app.storage.user.get('username')
+    if user_id not in ['admin', 'debugger', 'kaixin']:
         def return_to_main_page() -> None:
             dialog.close()
-            ui.navigate.to(app.storage.user.get('referrer_path', '/'))
+            ui.navigate.to('/')
         with ui.dialog() as dialog, ui.card():
             ui.label('权限不足，无法访问开发者控制台')
             ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
@@ -282,8 +290,59 @@ def dev_log() -> None:
     ui.query('body').style(f'background-color: rgb(247,255,247)')
     ui.label('RealTimeLog(实时日志):')
     text = ui.log(max_lines=100).classes('w-full h-100 scroll-snap-type scroll-snap-align')
-    ui.button('下载日志文件', on_click=lambda: ui.download('./chatroom.log')).classes('x-center bg-green').props('size=md push')
-    ui.timer(1.0, lambda: update_ui_log(text))
+    def download_log() -> None:
+        ui.download('./chatroom.log')
+    ui.button('下载日志文件', on_click=download_log).classes('bg-green').props('size=md push')
+    def update_log() -> None:
+        update_ui_log(text)
+    ui.timer(1.0, update_log)
+
+@ui.page('/code')
+def dev_code() -> None:
+    ui.add_css('''
+        .subtitle {
+            font-size: 20px;
+        }
+        .x-center {
+            margin: auto;
+            width: 50%;
+        }''')
+    ui.colors(primary='rgb(68,157,72)')
+    user_id = app.storage.user.get('username')
+    if user_id not in ['admin', 'debugger', 'kaixin']:
+        def return_to_main_page() -> None:
+            dialog.close()
+            ui.navigate.to('/')
+        with ui.dialog() as dialog, ui.card():
+            ui.label('权限不足，无法访问开发者控制台')
+            ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
+        dialog.open()
+    ui.query('body').style(f'background-color: rgb(247,255,247)')
+
+    def run_code() -> None:
+        cmd = str(code.value)
+        exec_data = globals()
+        if 'def main(' not in cmd:
+            exec_data['ret'] = 'Cannot find main code.'
+        else:
+            try:
+                PRINT(str(cmd) + f'\n\nret = main()')
+                exec(str(cmd) + f'\n\nret = main()', exec_data)
+            except Exception as e:
+                exec_data['ret'] = str(e)
+        code_output.clear()
+        code_output.push('output > \n')
+        code_output.push(exec_data['ret'])
+
+    ui.label('运行Python代码(exec):')
+    ui.label('!危险操作!').classes('text-red subtitle')
+    with ui.row():
+        ui.markdown('按下***运行按钮***将会**自动执行`main`函数中的内容**，并输出`main函数`的返回值，**不会输出除`main的返回值`外的任何其他值（如`print`）**')
+        ui.button('运行', on_click=run_code).classes('bg-green').props('size=md push')
+    code = ui.textarea('Code').classes('w-full h-100').props('dense outlined')
+    ui.label('输出')
+    code_output = ui.log(max_lines=1000).classes('w-full h-100')
+    code_output.push('output > \n')
 
 def run() -> None:
     ui.run(port=66, storage_secret='PASSWD', language='zh-CN', title='ChatRoom聊天室')
