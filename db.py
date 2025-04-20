@@ -58,6 +58,11 @@ class Sqlite3DB:  # sqlite3 模块操作
         print(self.pool.connections, '连接池的当前连接数量')  # 个人判断可能连接池的当前连接数量
         print(self.pool.idle_cache, '连接池的空闲数量')  # 源码里面有介绍连接池的空闲数量
 
+    def run_sql(self, sql):
+        self.create_a_connection()  # 创建数据连接
+        self.cur.execute(sql)
+        self.close_the_connection()  # 关闭数据库连接
+
     def inquiry_form(self) -> list:  # 查询数据中有多少表单
         """
         查询数据中有多少表单,返回多少张表。显示这个效果[('abc',), ……] 查询成功
