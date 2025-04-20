@@ -4,7 +4,10 @@ OK: str = 'DB-200'
 
 PRINT = print
 
-def print(text: str) -> None:
+def print(*args) -> None:
+    text = ''
+    for arg in args:
+        text += str(arg)
     PRINT(text)
     with open('./chatroom.log', 'a+', encoding='utf-8') as f:
         text_nocolor = ''
