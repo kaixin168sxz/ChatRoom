@@ -1,3 +1,5 @@
+import os
+import random
 from copy import copy
 from datetime import datetime
 from email.mime.text import MIMEText
@@ -6,24 +8,75 @@ from typing import List, Tuple
 import aiosmtplib
 from fastapi import Request
 from fastapi.responses import RedirectResponse
-from nicegui import Client, app, ui
+from nicegui import Client, app, ui, events
 from starlette.middleware.base import BaseHTTPMiddleware
-from db import ChatRoomDB, md5_encrypt
+from db import ChatRoomDB, md5_encrypt, get_md5
 from settings import *
+from PIL import Image
+import pillow_heif
+
+PRINT = print
+
+def print(*args) -> None:
+    text = ''
+    for arg in args:
+        text += str(arg)
+    PRINT(text)
+    with open('./chatroom.log', 'a+', encoding='utf-8') as f:
+        text_nocolor = ''
+        text_list = text.split('\n')
+        for text in text_list:
+            if '\033' in text:
+                tmp_text = ''
+                tmp_list = text.split('\033')
+                for tmp in tmp_list:
+                    if 'm' in tmp:
+                        tmp_text += 'm'.join(tmp.split('m')[1:])
+                    else:
+                        tmp_text += tmp
+                text = tmp_text
+            text_nocolor += text + '\n'
+
+        f.write(text_nocolor + '\n')
+
+def heic_to_jpg(input_file, output_file):
+    heif_file = pillow_heif.read_heif(input_file)
+    image = Image.frombytes(
+        heif_file.mode,
+        heif_file.size,
+        heif_file.data,
+        "raw",
+        heif_file.mode,
+        heif_file.stride,
+    )
+    image.save(output_file, "JPEG")
+
+def resize(file: str, scale: tuple[int | float, int | float]) -> None:
+    old_file = os.path.dirname(file) + '/tmp.'+file.split('.')[-1]
+    os.rename(file, old_file)
+    im = Image.open(old_file)
+    from_size = im.size
+    to_size = (int(from_size[0] * scale[0]), int(from_size[1] * scale[1]))
+    try:
+        image=im.resize(to_size)
+        image.save(file)
+        os.remove(old_file)
+    except IOError as e:
+        print(f'缩放图像失败: {e}，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 
 time_before = 0
 from_addr = 'YOUR_EMAIL_ADDRESS'
 email_password = 'YOUR_EMAIL_PASSWORD'
 
 async def sendemail(msg_to, subject, content):
-    msg = MIMEText(content, 'plain', 'utf-8')
+    msg = MIMEText(content+'\n<p><a href="http://c.8v8v.net:66">在聊天室中打开</a></p>', 'html', 'utf-8')
     msg['From'] = from_addr
     msg['To'] = msg_to
     msg['Subject'] = subject
 
     try:
         smtp = aiosmtplib.SMTP()
-        await smtp.connect(hostname='smtp.qq.com', port=25)
+        await smtp.connect(hostname='smtp.qq.com', port=465, use_tls=True)
         await smtp.login(from_addr, email_password)
         await smtp.send_message(msg)
         print(f'邮件已发送，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
@@ -36,6 +89,10 @@ db = ChatRoomDB('./Database/chatroom.db')
 
 avatars = {}
 default_avatar = ''
+file_path = ''
+file_url = ''
+resize_tuple = (0.5, 0.5)
+use_resize = True
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -98,7 +155,19 @@ def signin():
 @ui.refreshable
 def chat_messages(name) -> None:
     for user_id, avatar, text, stamp in messages:
-        ui.chat_message(text=text, stamp=stamp, avatar=avatar, sent=name == user_id, name=user_id)
+        if text[:6] == 'file::':
+            with ui.chat_message(stamp=stamp, avatar=avatar, sent=name == user_id, name=user_id):
+                url = file_url + text[6:]
+                ui.label(f'附件({url})：')
+                if text.split('.')[-1].lower() in ['png', 'jpg', 'jpeg', 'heic']:
+                    ui.image(url).classes('w-56').props('loading="lazy"')
+                def download():
+                    ui.download(url)
+                ui.button('下载附件', on_click=download).props('size=md push').classes('bg-green')
+
+        elif text[:6] == 'mess::':
+            ui.chat_message(text=text[6:], stamp=stamp, avatar=avatar, sent=name == user_id, name=user_id)
+
     ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
 @ui.page('/')
@@ -109,8 +178,13 @@ async def main():
             text-decoration: none;
             font-weight: 500
         }
+        .x-center {
+            margin: auto;
+            width: 50%;
+        }
         ''')
     ui.colors(primary='rgb(68,157,72)')
+    file = ''
 
     if not app.storage.user.get('authenticated', False):
         return RedirectResponse('/signin')
@@ -132,25 +206,57 @@ async def main():
         app.storage.user.clear()
         ui.navigate.to('/signin')
 
+    def handle_upload(e: events.UploadEventArguments):
+        nonlocal file
+        file = os.path.join(file_path, str(time()) + '_' + e.name)
+        with open(file, 'wb') as f:
+            f.write(e.content.read())
+        if file.split('.')[-1].lower() == 'heic':
+            old_file = file
+            file = '.'.join(file.split('.')[: -1]) + '.jpg'
+            heic_to_jpg(old_file, file)
+            os.remove(old_file)
+        if use_resize:
+            if file.split('.')[-1].lower() in ['png', 'jpg', 'jpeg', 'heic']:
+                resize(file, resize_tuple)
+        ui.notify('附件已上传', position='top', type='info')
+
     async def send() -> None:
+        nonlocal file
         global time_before
-        text_value = text.value
-        text.value = ''
-        if not text_value.strip():
-            ui.notify('内容不能为空', type='info', position='top')
-            return
+        dialog.close()
+        if not os.path.exists(str(file)):
+            text_value = text.value
+            text.value = ''
+            if not text_value.strip():
+                ui.notify('内容不能为空', type='info', position='top')
+                return
+            text_value = 'mess::' + text_value
+        else:
+            text_value = 'file::' + file
+        file = ''
         stamp = datetime.now().strftime('%X')
         messages.append((user_id, avatar, text_value, stamp))
-        try:
-            db.new_message(user_id, text_value)
-        except UnicodeEncodeError as e:
-            print(f'编码错误({e}), Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+
+        # 启用日志会使网站卡顿!
+        # try:
+        #     db.new_message(user_id, text_value)
+        # except UnicodeEncodeError as e:
+        #     print(f'编码错误({e}), Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
         chat_messages.refresh()
         time_now = time()
         if (time_now - time_before) > 75:
             time_before = copy(time_now)
+            text_value_send = text_value[6:]
+            if text_value[:6] == 'file::':
+                text_value_send += '\n(请在浏览器中查看附件)'
             for i in db.get_all_emails():
-                await sendemail(i[-2], f'你收到了一条来自{user_id}的消息【聊天室】', text_value)
+                if i[1] != user_id:
+                    await sendemail(i[-2], f'你收到了一条来自{user_id}的消息【聊天室】', text_value_send)
+
+    with ui.dialog() as dialog, ui.column():
+        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=80_000_000).classes('max-w-full')
+        ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green x-center')
 
     user_id = app.storage.user.get('username')
 
@@ -177,12 +283,14 @@ async def main():
             ui.timer(1.0, lambda: time_label.set_text(str(datetime.now().strftime("%X"))))
 
     with ui.footer().classes('bg-white'), ui.column().classes('w-full max-w-3xl mx-auto my-6'):
-        with ui.row().classes('w-full no-wrap items-center'):
+        with ui.row().classes('w-full no-wrap items-center gap-2'):
+            with ui.button(on_click=dialog.open).props('size=md push fab color=accent padding="sm"').classes('bg-green gap-0'):
+                ui.icon('library_add').style('font-size: 1em')
             text = ui.input('请输入消息').on('keydown.enter', send).props('dense outlined input-class=mx-3').classes('flex-grow')
-            ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green')
+            ui.button(icon='send', on_click=send).props('size=md push').classes('bg-green')
         with ui.row().classes('w-full no-wrap'):
             ui.space()
-            ui.markdown('[Copyright © 2025 宋昕哲(kaixin168sxz) 使用MIT协议开源](https://github.com/kaixin168sxz/ChatRoom)').classes('text-xs self-end mr-8 m-[-1em] text-green')
+            ui.markdown('[Copyright © 2025 宋昕哲(kaixin168sxz)](https://github.com/kaixin168sxz/ChatRoom)').classes('text-xs self-end mr-8 m-[-1em] text-green')
 
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
 
@@ -204,19 +312,19 @@ def signup() -> None:
     def try_signup() -> None:
         if not username.value:
             ui.notify('用户名不能为空', type='warning', position='top')
-        if not password.value:
+        elif not password.value:
             ui.notify('密码不能为空', type='warning', position='top')
-        if email.value and email.value.count('@') != 1:
+        elif email.value and email.value.count('@') != 1:
             ui.notify('邮件格式错误', type='warning', position='top')
-            return
-        if not email.value and email_switch.value:
+        elif not email.value and email_switch.value:
             ui.notify('要使用邮箱通知，请输入邮箱', type='warning', position='top')
-        try_db = db.sign_up(username.value, password.value, email.value, {True: 'EmailSend', False: 'EmailNoSend'}[email_switch.value])
-        if try_db == EXISTS:
-            ui.notify('用户名已存在', type='warning', position='top')
-            return
-        ui.notify('注册成功', type='info', position='top')
-        ui.navigate.to('/signin')
+        else:
+            try_db = db.sign_up(username.value, password.value, email.value, {True: 'EmailSend', False: 'EmailNoSend'}[email_switch.value])
+            if try_db == EXISTS:
+                ui.notify('用户名已存在', type='warning', position='top')
+                return
+            ui.notify('注册成功', type='info', position='top')
+            ui.navigate.to('/signin')
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')
     with ui.card().classes('absolute-center').style(f'background-color: rgb(235,255,235)').props('flat bordered'):
@@ -276,6 +384,9 @@ def dev_log() -> None:
         .x-center {
             margin: auto;
             width: 50%;
+        }
+        .code-font {
+            font-family: monospace;
         }''')
     ui.colors(primary='rgb(68,157,72)')
     user_id = app.storage.user.get('username')
@@ -289,7 +400,7 @@ def dev_log() -> None:
         dialog.open()
     ui.query('body').style(f'background-color: rgb(247,255,247)')
     ui.label('RealTimeLog(实时日志):')
-    text = ui.log(max_lines=100).classes('w-full h-100 scroll-snap-type scroll-snap-align')
+    text = ui.log(max_lines=100).classes('w-full h-100 scroll-snap-type scroll-snap-align code-font')
     def download_log() -> None:
         ui.download('./chatroom.log')
     ui.button('下载日志文件', on_click=download_log).classes('bg-green').props('size=md push')
@@ -306,6 +417,9 @@ def dev_code() -> None:
         .x-center {
             margin: auto;
             width: 50%;
+        }
+        .code-font {
+            font-family: monospace;
         }''')
     ui.colors(primary='rgb(68,157,72)')
     user_id = app.storage.user.get('username')
@@ -339,9 +453,9 @@ def dev_code() -> None:
     with ui.row():
         ui.markdown('按下***运行按钮***将会**自动执行`main`函数中的内容**，并输出`main函数`的返回值，**不会输出除`main的返回值`外的任何其他值（如`print`）**')
         ui.button('运行', on_click=run_code).classes('bg-green').props('size=md push')
-    code = ui.textarea('Code').classes('w-full h-100').props('dense outlined')
+    code = ui.textarea('Code').classes('w-full h-100 code-font').props('dense outlined')
     ui.label('输出')
-    code_output = ui.log(max_lines=1000).classes('w-full h-100')
+    code_output = ui.log(max_lines=1000).classes('w-full h-100 code-font')
     code_output.push('output > \n')
 
 def run() -> None:
