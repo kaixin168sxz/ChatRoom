@@ -2,6 +2,10 @@ EXISTS: str = 'Exists'
 NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
 
+from_addr = ''
+email_password = ''
+storage_secret=''
+
 PRINT = print
 
 def print(*args) -> None:
