@@ -1,12 +1,11 @@
 .nicegui
 chatroom.log
 .venv
-.venv_linux
 run.py
-run.so
 setup.py
 test/
 files/
 .DS_Store
 ._*
 passwd.py
+__pycache__
