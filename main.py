@@ -72,7 +72,6 @@ file_url = ''
 resize_tuple = (0.5, 0.5)
 use_resize = True
 time_before = 0
-version = 0.4
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -272,7 +271,7 @@ async def main():
             ui.button(icon='send', on_click=send).props('size=md push').classes('bg-green')
         with ui.row().classes('w-full no-wrap'):
             ui.space()
-            ui.markdown('[Copyright © 2025 宋昕哲(kaixin168sxz)](https://github.com/kaixin168sxz/ChatRoom)').classes('text-xs self-end mr-8 m-[-1em] text-green')
+            ui.markdown(f'[Copyright © 2025 宋昕哲](https://github.com/kaixin168sxz/ChatRoom) | **version: {VERSION}**').classes('text-xs self-end mr-8 m-[-1em] text-green')
 
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
 
