@@ -1,11 +1,7 @@
 EXISTS: str = 'Exists'
 NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
-VERSION = 0.4
-
-from_addr = ''
-email_password = ''
-storage_secret=''
+VERSION = 0.41
 
 PRINT = print
 

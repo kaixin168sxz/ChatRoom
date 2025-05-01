@@ -11,6 +11,7 @@ from nicegui import Client, app, ui, events
 from starlette.middleware.base import BaseHTTPMiddleware
 from db import ChatRoomDB, md5_encrypt
 from settings import *
+from passwd import *
 from PIL import Image
 import pillow_heif
 from functools import partial
@@ -48,14 +49,14 @@ def resize(any_file: str, scale: tuple[int | float, int | float]) -> str:
 
 async def sendemail(msg_to, subject, content):
     msg = MIMEText(content+'\n<p><a href="http://c.8v8v.net:66">在聊天室中打开</a></p>', 'html', 'utf-8')
-    msg['From'] = from_addr
+    msg['From'] = from_addr()
     msg['To'] = msg_to
     msg['Subject'] = subject
 
     try:
         smtp = aiosmtplib.SMTP()
         await smtp.connect(hostname='smtp.qq.com', port=465, use_tls=True)
-        await smtp.login(from_addr, email_password)
+        await smtp.login(from_addr(), email_password())
         await smtp.send_message(msg)
         print(f'邮件已发送，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     except aiosmtplib.SMTPException as e:
@@ -444,4 +445,4 @@ def dev_code() -> None:
     code_output.push('output > \n')
 
 def run() -> None:
-    ui.run(port=66, storage_secret=storage_secret, language='zh-CN', title='ChatRoom聊天室')
+    ui.run(port=66, storage_secret=storage_secret(), language='zh-CN', title='ChatRoom聊天室')
