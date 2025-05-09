@@ -65,13 +65,6 @@ async def sendemail(msg_to, subject, content):
 unrestricted_page_routes = {'/signin', '/signup'}
 messages: List[Tuple[str, str, str, str]] = []
 db = ChatRoomDB('./Database/chatroom.db')
-
-avatars = {}
-default_avatar = ''
-file_path = ''
-file_url = ''
-resize_tuple = (0.5, 0.5)
-use_resize = True
 time_before = 0
 
 class AuthMiddleware(BaseHTTPMiddleware):
@@ -80,9 +73,22 @@ class AuthMiddleware(BaseHTTPMiddleware):
             if request.url.path in Client.page_routes.values() and request.url.path not in unrestricted_page_routes:
                 app.storage.user['referrer_path'] = request.url.path
                 return RedirectResponse('/signin')
+        else:
+            if app.storage.user.get('username') in blacklist and request.url.path != '/black_user':
+                return RedirectResponse('/black_user')
         return await call_next(request)
 
 app.add_middleware(AuthMiddleware)
+
+@ui.page('/black_user')
+def black_user():
+    username = app.storage.user.get('username')
+    if username in blacklist:
+        print('BLACK_USER:'+username)
+        black_label = blacklist[username]
+        ui.label(black_label if black_label else '滚!').classes('text-xl')
+    else:
+        return RedirectResponse('/')
 
 @ui.page('/signin')
 def signin():
@@ -128,13 +134,16 @@ def signin():
         password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined').on('keydown.enter', try_signin)
         with ui.button('登录', on_click=try_signin).classes('x-center bg-green').props('size=md push'):
             ui.tooltip('欢迎来到聊天室').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
-        with ui.row().classes('w-full items-center gap-2'):
-            ui.space()
-            ui.link('注册用户', signup).classes('text-xs text-green')
+        if allow_signup:
+            with ui.row().classes('w-full items-center gap-2'):
+                ui.space()
+                ui.link('注册用户', signup).classes('text-xs text-green')
 
 @ui.refreshable
 def chat_messages(name) -> None:
     for user_id, avatar, text, stamp in messages:
+        if user_id in replace_username:
+            user_id = replace_username[user_id]
         if text[:6] == 'file::':
             with ui.chat_message(stamp=stamp, avatar=avatar, sent=name == user_id, name=user_id):
                 url = file_url + text[6:].split('/')[-1]
@@ -272,7 +281,7 @@ async def main():
             ui.button(icon='send', on_click=send).props('size=md push').classes('bg-green')
         with ui.row().classes('w-full no-wrap'):
             ui.space()
-            ui.markdown(f'[Copyright © 2025 宋昕哲](https://github.com/kaixin168sxz/ChatRoom) | **version: {VERSION}**').classes('text-xs self-end mr-8 m-[-1em] text-green')
+            ui.markdown(f'[Copyright © 2025 宋昕哲](https://github.com/kaixin168sxz/ChatRoom) | **版本: {VERSION}**').classes('text-xs self-end mr-8 m-[-1em] text-green')
 
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
 
@@ -290,45 +299,55 @@ def signup() -> None:
             width: 50%;
         }''')
     ui.colors(primary='rgb(68,157,72)')
+    if not allow_signup:
+        def return_to_main_page() -> None:
+            dialog.close()
+            ui.navigate.to('/')
 
-    def try_signup() -> None:
-        if not username.value:
-            ui.notify('用户名不能为空', type='warning', position='top')
-        elif not password.value:
-            ui.notify('密码不能为空', type='warning', position='top')
-        elif email.value and email.value.count('@') != 1:
-            ui.notify('邮件格式错误', type='warning', position='top')
-        elif not email.value and email_switch.value:
-            ui.notify('要使用邮箱通知，请输入邮箱', type='warning', position='top')
-        else:
-            if password.value == retry_password.value:
-                try_db = db.sign_up(username.value, password.value, email.value, {True: 'EmailSend', False: 'EmailNoSend'}[email_switch.value])
-                if try_db == EXISTS:
-                    ui.notify('用户名已存在', type='warning', position='top')
-                    return
-                ui.notify('注册成功', type='info', position='top')
-                ui.navigate.to('/signin')
+        with ui.dialog() as dialog, ui.card():
+            ui.label('注册页面已关闭，请联系管理员：kaixin168kx@163.com')
+            ui.button('返回', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
+        dialog.open()
+        # ui.navigate.to('/signin')
+    else:
+        def try_signup() -> None:
+            if not username.value:
+                ui.notify('用户名不能为空', type='warning', position='top')
+            elif not password.value:
+                ui.notify('密码不能为空', type='warning', position='top')
+            elif email.value and email.value.count('@') != 1:
+                ui.notify('邮件格式错误', type='warning', position='top')
+            elif not email.value and email_switch.value:
+                ui.notify('要使用邮箱通知，请输入邮箱', type='warning', position='top')
             else:
-                ui.notify('密码和确认密码不相同', type='warning', position='top')
+                if password.value == retry_password.value:
+                    try_db = db.sign_up(username.value, password.value, email.value, {True: 'EmailSend', False: 'EmailNoSend'}[email_switch.value])
+                    if try_db == EXISTS:
+                        ui.notify('用户名已存在', type='warning', position='top')
+                        return
+                    ui.notify('注册成功', type='info', position='top')
+                    ui.navigate.to('/signin')
+                else:
+                    ui.notify('密码和确认密码不相同', type='warning', position='top')
 
-    ui.query('body').style(f'background-color: rgb(247,255,247)')
-    with ui.card().classes('absolute-center').style(f'background-color: rgb(235,255,235)').props('flat bordered'):
-        ui.label('注册用户').classes('subtitle')
-        username = ui.input('用户').classes('fill').props('dense outlined')
-        password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined')
-        retry_password = ui.input('再次确认密码', password=True).classes('inline-flex').props('dense outlined')
-        def update_switch_val():
-            if email.value:
-                email_switch.set_value(True)
-            else:
-                email_switch.set_value(False)
-        email = ui.input('邮箱（可选）', on_change=update_switch_val).classes('inline-flex').props('dense outlined').on('keydown.enter', try_signup)
-        email_switch = ui.switch('邮箱通知').props('icon="mail" color="green"').bind_visibility_from(email, 'value')
-        with ui.button('注册', on_click=try_signup).classes('x-center bg-green').props('size=md push'):
-            ui.tooltip('立即注册用户').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
-        with ui.row().classes('w-full items-center gap-2'):
-            ui.space()
-            ui.link('登录用户', signin).classes('text-xs text-green')
+        ui.query('body').style(f'background-color: rgb(247,255,247)')
+        with ui.card().classes('absolute-center').style(f'background-color: rgb(235,255,235)').props('flat bordered'):
+            ui.label('注册用户').classes('subtitle')
+            username = ui.input('用户').classes('fill').props('dense outlined')
+            password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined')
+            retry_password = ui.input('再次确认密码', password=True).classes('inline-flex').props('dense outlined')
+            def update_switch_val():
+                if email.value:
+                    email_switch.set_value(True)
+                else:
+                    email_switch.set_value(False)
+            email = ui.input('邮箱（可选）', on_change=update_switch_val).classes('inline-flex').props('dense outlined').on('keydown.enter', try_signup)
+            email_switch = ui.switch('邮箱通知').props('icon="mail" color="green"').bind_visibility_from(email, 'value')
+            with ui.button('注册', on_click=try_signup).classes('x-center bg-green').props('size=md push'):
+                ui.tooltip('立即注册用户').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
+            with ui.row().classes('w-full items-center gap-2'):
+                ui.space()
+                ui.link('登录用户', signin).classes('text-xs text-green')
 
 def update_ui_log(text):
     text.clear()
@@ -345,6 +364,9 @@ def developer() -> None:
         .x-center {
             margin: auto;
             width: 50%;
+        }
+        .code-font {
+            font-family: monospace;
         }''')
     ui.colors(primary='rgb(68,157,72)')
     user_id = app.storage.user.get('username')
@@ -356,10 +378,47 @@ def developer() -> None:
             ui.label('权限不足，无法访问开发者控制台')
             ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
         dialog.open()
-    ui.query('body').style(f'background-color: rgb(247,255,247)')
-    ui.label(f'Hi, {user_id}').classes('subtitle')
-    ui.link('实时日志', dev_log).classes('text-green')
-    ui.link('运行代码', dev_code).classes('text-green')
+    else:
+        def clean_messages():
+            global messages
+            messages = []
+        def change_var():
+            try:
+                exec(f'''global {var.value}
+{var.value} = {val.value}''', globals())
+                err.set_text(f'output> {var.value} = {val.value}')
+            except BaseException as e:
+                err.set_text('output> [ERR: ' + str(e) + ']')
+        def get_var():
+            try:
+                val0.set_text(str(eval(var.value)))
+            except BaseException as e:
+                val0.set_text('[ERR: ' + str(e) + ']')
+        ui.query('body').style(f'background-color: rgb(247,255,247)')
+        ui.label(f'Hi, {user_id}').classes('subtitle')
+        ui.link('实时日志', dev_log).classes('text-green')
+        ui.link('运行代码', dev_code).classes('text-green')
+        ui.button('清空聊天记录', on_click=clean_messages).classes('bg-green')
+        with ui.card():
+            ui.label('修改变量：')
+            with ui.row().classes('w-full'):
+                ui.label('将变量  ').classes('code-font')
+                var = ui.input('var').props('dense outlined').classes('code-font')
+                ui.label('  设为  ').classes('code-font')
+                val = ui.input('val').props('dense outlined').classes('code-font')
+                ui.button('修改', on_click=change_var).classes('bg-green')
+            err = ui.label('output> ').classes('code-font')
+        with ui.card():
+            ui.label('查看变量：')
+            with ui.row().classes('w-full'):
+                ui.label('变量  ').classes('code-font')
+                var0 = ui.input('var').props('dense outlined').classes('code-font')
+                ui.label('  的值是  ').classes('code-font')
+                val0 = ui.label('[val]').classes('code-font')
+                ui.button('查看', on_click=get_var).classes('bg-green')
+        with ui.card().classes('w-full'):
+            ui.markdown('变量(`globals()`):')
+            ui.code(str(globals())).classes('w-full')
 
 @ui.page('/log')
 def dev_log() -> None:
@@ -384,15 +443,16 @@ def dev_log() -> None:
             ui.label('权限不足，无法访问开发者控制台')
             ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
         dialog.open()
-    ui.query('body').style(f'background-color: rgb(247,255,247)')
-    ui.label('RealTimeLog(实时日志):')
-    text = ui.log(max_lines=100).classes('w-full h-100 scroll-snap-type scroll-snap-align code-font')
-    def download_log() -> None:
-        ui.download('./chatroom.log')
-    ui.button('下载日志文件', on_click=download_log).classes('bg-green').props('size=md push')
-    def update_log() -> None:
-        update_ui_log(text)
-    ui.timer(1.0, update_log)
+    else:
+        ui.query('body').style(f'background-color: rgb(247,255,247)')
+        ui.label('RealTimeLog(实时日志):')
+        text = ui.log(max_lines=100).classes('w-full h-100 scroll-snap-type scroll-snap-align code-font')
+        def download_log() -> None:
+            ui.download('./chatroom.log')
+        ui.button('下载日志文件', on_click=download_log).classes('bg-green').props('size=md push')
+        def update_log() -> None:
+            update_ui_log(text)
+        ui.timer(1.0, update_log)
 
 @ui.page('/code')
 def dev_code() -> None:
@@ -417,32 +477,32 @@ def dev_code() -> None:
             ui.label('权限不足，无法访问开发者控制台')
             ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
         dialog.open()
-    ui.query('body').style(f'background-color: rgb(247,255,247)')
+    else:
+        ui.query('body').style(f'background-color: rgb(247,255,247)')
+        def run_code() -> None:
+            cmd = str(code.value)
+            exec_data = globals()
+            if 'def main(' not in cmd:
+                exec_data['ret'] = 'Cannot find main code.'
+            else:
+                try:
+                    PRINT(str(cmd) + f'\n\nret = main()')
+                    exec(str(cmd) + f'\n\nret = main()', exec_data)
+                except Exception as e:
+                    exec_data['ret'] = str(e)
+            code_output.clear()
+            code_output.push('output > \n')
+            code_output.push(exec_data['ret'])
 
-    def run_code() -> None:
-        cmd = str(code.value)
-        exec_data = globals()
-        if 'def main(' not in cmd:
-            exec_data['ret'] = 'Cannot find main code.'
-        else:
-            try:
-                PRINT(str(cmd) + f'\n\nret = main()')
-                exec(str(cmd) + f'\n\nret = main()', exec_data)
-            except Exception as e:
-                exec_data['ret'] = str(e)
-        code_output.clear()
+        ui.label('运行Python代码(exec)或使用更新补丁:')
+        ui.label('!危险操作!').classes('text-red subtitle')
+        with ui.row():
+            ui.markdown('按下***运行按钮***将会**自动执行`main`函数中的内容**，并输出`main函数`的返回值，**不会输出除`main的返回值`外的任何其他值（如`print`）**')
+            ui.button('运行', on_click=run_code).classes('bg-green').props('size=md push')
+        code = ui.textarea('Code').classes('w-full h-100 code-font').props('dense outlined')
+        ui.label('输出')
+        code_output = ui.log(max_lines=1000).classes('w-full h-100 code-font')
         code_output.push('output > \n')
-        code_output.push(exec_data['ret'])
 
-    ui.label('运行Python代码(exec):')
-    ui.label('!危险操作!').classes('text-red subtitle')
-    with ui.row():
-        ui.markdown('按下***运行按钮***将会**自动执行`main`函数中的内容**，并输出`main函数`的返回值，**不会输出除`main的返回值`外的任何其他值（如`print`）**')
-        ui.button('运行', on_click=run_code).classes('bg-green').props('size=md push')
-    code = ui.textarea('Code').classes('w-full h-100 code-font').props('dense outlined')
-    ui.label('输出')
-    code_output = ui.log(max_lines=1000).classes('w-full h-100 code-font')
-    code_output.push('output > \n')
-
-def run() -> None:
-    ui.run(port=66, storage_secret=storage_secret(), language='zh-CN', title='ChatRoom聊天室')
+def run(**kwargs) -> None:
+    ui.run(**kwargs)
