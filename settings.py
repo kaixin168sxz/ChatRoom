@@ -3,6 +3,16 @@ NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
 VERSION = 0.41
 
+avatars = {}
+default_avatar = ''
+file_path = ''
+file_url = ''
+resize_tuple = (0.5, 0.5)
+use_resize = True
+replace_username = {}
+allow_signup = True
+blacklist = {}
+
 PRINT = print
 
 def print(*args) -> None:
