@@ -62,7 +62,6 @@ async def sendemail(msg_to, subject, content):
     except aiosmtplib.SMTPException as e:
         print(f'邮件发送失败: {e}，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 
-unrestricted_page_routes = {'/signin', '/signup'}
 messages: List[Tuple[str, str, str, str]] = []
 db = ChatRoomDB('./Database/chatroom.db')
 time_before = 0
@@ -74,7 +73,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 app.storage.user['referrer_path'] = request.url.path
                 return RedirectResponse('/signin')
         else:
-            if app.storage.user.get('username') in blacklist and request.url.path != '/black_user':
+            if app.storage.user.get('username') in blacklist and request.url.path not in allow_blackuser:
                 return RedirectResponse('/black_user')
         return await call_next(request)
 
@@ -86,7 +85,7 @@ def black_user():
     if username in blacklist:
         print('BLACK_USER:'+username)
         black_label = blacklist[username]
-        ui.label(black_label if black_label else '滚!').classes('text-xl')
+        ui.markdown(black_label if black_label else '# 滚!')
     else:
         return RedirectResponse('/')
 
@@ -129,42 +128,49 @@ def signin():
         app.storage.user.update({'username': user, 'authenticated': True})
         ui.navigate.to('/')
     with ui.card().classes('absolute-center').style(f'background-color: rgb(235,255,235)').props('flat bordered'):
-        ui.label('欢迎来到聊天室').classes('subtitle')
+        ui.label('欢迎').classes('subtitle')
         username = ui.input('用户').classes('fill').props('dense outlined')
         password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined').on('keydown.enter', try_signin)
         with ui.button('登录', on_click=try_signin).classes('x-center bg-green').props('size=md push'):
-            ui.tooltip('欢迎来到聊天室').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
+            ui.tooltip('Welcome').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
         if allow_signup:
             with ui.row().classes('w-full items-center gap-2'):
                 ui.space()
                 ui.link('注册用户', signup).classes('text-xs text-green')
+    with ui.footer().style(f'background-color: rgb(247,255,247)'), ui.row().classes('w-full no-wrap'):
+        ui.space()
+        ui.markdown(web_info).classes('text-xs text-green')
+
+    return None
 
 @ui.refreshable
 def chat_messages(name) -> None:
     for user_id, avatar, text, stamp in messages:
+        show_id = user_id
         if user_id in replace_username:
-            user_id = replace_username[user_id]
-        if text[:6] == 'file::':
-            with ui.chat_message(stamp=stamp, avatar=avatar, sent=name == user_id, name=user_id):
+            show_id = replace_username[user_id]
+        with ui.chat_message(stamp=stamp, avatar=avatar, sent=name == user_id, name=show_id):
+            if text[:6] == 'file::':
                 url = file_url + text[6:].split('/')[-1]
                 ui.label(f'附件({url})：')
-                if text.split('.')[-1].lower() in ['png', 'jpg', 'jpeg', 'heic']:
+                if text.split('.')[-1].lower() in ['png', 'jpg', 'jpeg']:
                     ui.image(url).classes('w-56').props('loading="lazy"')
-                ui.button('下载附件', on_click=partial(ui.download, url)).props('size=md push').classes('bg-green')
-
-        elif text[:6] == 'mess::':
-            ui.chat_message(text=text[6:], stamp=stamp, avatar=avatar, sent=name == user_id, name=user_id)
+                elif text.split('.')[-1].lower() in ['mp3', 'wav']:
+                    ui.audio(url).classes('w-56').props('loading="lazy"')
+                elif text.split('.')[-1].lower() in ['mp4', ]:
+                    ui.video(url).classes('w-56').props('loading="lazy"')
+                ui.link('点击下载附件', url, new_tab=True).classes('text-blue')
+            elif text[:6] == 'mess::':
+                if user_id in use_markdown:
+                    ui.markdown(text[6:])
+                else:
+                    ui.label(text[6:])
 
     ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
 @ui.page('/')
 async def main():
     ui.add_css('''
-        a:link, a:visited {
-            color: inherit !important;
-            text-decoration: none;
-            font-weight: 500
-        }
         .x-center {
             margin: auto;
             width: 50%;
@@ -204,7 +210,7 @@ async def main():
             heic_to_jpg(old_file, file)
             os.remove(old_file)
         if use_resize:
-            if file.split('.')[-1].lower() in ['png', 'jpg', 'jpeg', 'heic']:
+            if file.split('.')[-1].lower() in ['png', 'jpg', 'jpeg']:
                 file = resize(file, resize_tuple)
         else:
             file = resize(file, (1, 1))
@@ -277,11 +283,11 @@ async def main():
         with ui.row().classes('w-full no-wrap items-center gap-2'):
             with ui.button(on_click=dialog.open).props('size=md push fab color=accent padding="sm"').classes('bg-green gap-0'):
                 ui.icon('library_add').style('font-size: 1em')
-            text = ui.input('请输入消息').on('keydown.enter', send).props('dense outlined input-class=mx-3').classes('flex-grow')
+            text = ui.textarea(label='请输入消息').props('dense outlined input-class=mx-3 autogrow').classes('flex-grow')
             ui.button(icon='send', on_click=send).props('size=md push').classes('bg-green')
         with ui.row().classes('w-full no-wrap'):
             ui.space()
-            ui.markdown(f'[Copyright © 2025 宋昕哲](https://github.com/kaixin168sxz/ChatRoom) | **版本: {VERSION}**').classes('text-xs self-end mr-8 m-[-1em] text-green')
+            ui.markdown(web_info).classes('text-xs text-green')
 
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
 
@@ -348,6 +354,10 @@ def signup() -> None:
             with ui.row().classes('w-full items-center gap-2'):
                 ui.space()
                 ui.link('登录用户', signin).classes('text-xs text-green')
+        with ui.footer().style(f'background-color: rgb(247,255,247)'), ui.row().classes('w-full no-wrap'):
+            ui.space()
+            ui.markdown(web_info).classes('text-xs text-green')
+        return None
 
 def update_ui_log(text):
     text.clear()
@@ -391,7 +401,7 @@ def developer() -> None:
                 err.set_text('output> [ERR: ' + str(e) + ']')
         def get_var():
             try:
-                val0.set_text(str(eval(var.value)))
+                val0.set_text(str(eval(var0.value)))
             except BaseException as e:
                 val0.set_text('[ERR: ' + str(e) + ']')
         ui.query('body').style(f'background-color: rgb(247,255,247)')
@@ -499,7 +509,7 @@ def dev_code() -> None:
         with ui.row():
             ui.markdown('按下***运行按钮***将会**自动执行`main`函数中的内容**，并输出`main函数`的返回值，**不会输出除`main的返回值`外的任何其他值（如`print`）**')
             ui.button('运行', on_click=run_code).classes('bg-green').props('size=md push')
-        code = ui.textarea('Code').classes('w-full h-100 code-font').props('dense outlined')
+        code = ui.codemirror('', language='Python', theme='oneDark').classes('w-full h-100 code-font')
         ui.label('输出')
         code_output = ui.log(max_lines=1000).classes('w-full h-100 code-font')
         code_output.push('output > \n')

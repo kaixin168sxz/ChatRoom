@@ -1,7 +1,7 @@
 EXISTS: str = 'Exists'
 NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
-VERSION = 0.41
+VERSION = 0.48
 
 avatars = {}
 default_avatar = ''
@@ -12,6 +12,10 @@ use_resize = True
 replace_username = {}
 allow_signup = True
 blacklist = {}
+unrestricted_page_routes = {'/signin', '/signup'}
+allow_blackuser = {'/signin', '/signup', '/black_user'}
+use_markdown = {'admin', 'kaixin'}
+web_info = f'**Copyright © 2025 宋昕哲 | v{VERSION}**'
 
 PRINT = print
 
