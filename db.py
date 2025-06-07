@@ -208,26 +208,7 @@ class ChatRoomDB(Sqlite3DB):
         now = datetime.now()
         if send_time == 'Auto':
             send_time = now.strftime('%Y/%m/%d %H:%M:%S')
-        if now.strftime('%Y/%m/%d %H:%M:%S') != send_time:
-            print('+-----------------------------------------------------------+\n'
-                  '| \033[1;33mWARNING\033[0m: datatime.now() is not the same as arg send_time! |\n'
-                  '+-----------------------------------------------------------+')
-        # self.insert_data(self.messages_table, self.messages_cols, (user, message, send_time, file_url))
-
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        length_list = [len(i) + 19 for i in (user, message, send_time, file_url, now)]  # 19是信息前提示词的宽度("| User        ->   "...)
-        length_list.append(len('+---------------------------------'))
-        length_list.append(len('| INFO: send message successfully:'))
-        max_length = max(length_list)
-        max_length += 1
-        print( '+---------------------------------'                 + '-' * (max_length - length_list[5]) + '+\n' +
-               '| \033[1;34mINFO\033[0m: send message successfully:'+ ' ' * (max_length - length_list[6]) + '|\n' +
-              f'| User        ->   {user}'                          + ' ' * (max_length - length_list[0]) + '|\n' +
-              f'| Message     ->   {message}'                       + ' ' * (max_length - length_list[1]) + '|\n' +
-              f'| Time        ->   {send_time}'                     + ' ' * (max_length - length_list[2]) + '|\n' +
-              f'| File        ->   {file_url}'                      + ' ' * (max_length - length_list[3]) + '|\n' +
-              f'| Time(Log)   ->   {now}'                           + ' ' * (max_length - length_list[4]) + '|\n' +
-               '+---------------------------------'                 + '-' * (max_length - length_list[5]) + '+')
+        self.insert_data(self.messages_table, self.messages_cols, (user, message, send_time, file_url))
         return OK
 
     def sign_up(self, user: str, password: str, email: str, note: str=''):
