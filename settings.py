@@ -1,7 +1,7 @@
 EXISTS: str = 'Exists'
 NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
-VERSION = 0.48
+VERSION = 0.8
 
 avatars = {}
 default_avatar = ''
@@ -14,8 +14,10 @@ allow_signup = True
 blacklist = {}
 unrestricted_page_routes = {'/signin', '/signup'}
 allow_blackuser = {'/signin', '/signup', '/black_user'}
-use_markdown = {'admin', 'kaixin'}
-web_info = f'**Copyright © 2025 宋昕哲 | v{VERSION}**'
+use_markdown = {'admin', 'debugger', 'kaixin', '螃蟹'}
+admin_users = {'admin', 'debugger', 'kaixin', '螃蟹'}
+use_html = {'admin', 'debugger', 'kaixin', '螃蟹'}
+web_info = f'**苏ICP备2025180468号 | Copyright © 2025 宋昕哲 | v{VERSION}**'
 
 PRINT = print
 
