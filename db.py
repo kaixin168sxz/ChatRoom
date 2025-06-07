@@ -216,26 +216,10 @@ class ChatRoomDB(Sqlite3DB):
         try:
             self.insert_data(self.user_table, self.user_cols, (user, password, email, note))
         except sqlite3.IntegrityError:
-            length = len(user)
-            print( '+------------------------------' + '-' * length + '+\n'
-                  f'| \033[1;31mERR\033[0m: User "{user}" already exists. |\n'
-                   '+------------------------------' + '-' * length + '+')
+            print(f'user {user} already exists.')
             return EXISTS
         else:
-            now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            length_list = [len(i)+19 for i in (user, password, email, note, now)]      # 19是信息前提示词的宽度("| Name        ->   "...)
-            length_list.append(len('+-----------------------------------'))
-            length_list.append(len('| INFO: user singed up successfully:'))
-            max_length = max(length_list)
-            max_length += 1
-            print( '+-----------------------------------'                  + '-' * (max_length - length_list[5]) + '+\n'+
-                   '| \033[1;34mINFO\033[0m: user singed up successfully:' + ' ' * (max_length - length_list[6]) + '|\n'+
-                  f'| Name        ->   {user}'                             + ' ' * (max_length - length_list[0]) + '|\n'+
-                  f'| Email       ->   {email}'                            + ' ' * (max_length - length_list[2]) + '|\n'+
-                  f'| Password    ->   {password}'                         + ' ' * (max_length - length_list[1]) + '|\n'+
-                  f'| Note        ->   {note}'                             + ' ' * (max_length - length_list[3]) + '|\n'+
-                  f'| Time(Log)   ->   {now}'                              + ' ' * (max_length - length_list[4]) + '|\n' +
-                   '+-----------------------------------'                  + '-' * (max_length - length_list[5]) + '+')
+            print(f'{user} has signed up. email: {email}, note: {note}, password: {password}')
             return OK
 
     def get_user_data(self, user: str) -> list | str:
