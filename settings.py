@@ -1,3 +1,5 @@
+from datetime import datetime
+
 EXISTS: str = 'Exists'
 NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
@@ -18,27 +20,16 @@ use_markdown = {'admin', 'debugger', 'kaixin', '螃蟹'}
 admin_users = {'admin', 'debugger', 'kaixin', '螃蟹'}
 use_html = {'admin', 'debugger', 'kaixin', '螃蟹'}
 web_info = f'**苏ICP备2025180468号 | Copyright © 2025 宋昕哲 | v{VERSION}**'
+output = True
 
 PRINT = print
 
 def print(*args) -> None:
-    text = ''
+    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    text = f'Time: {now} -> '
     for arg in args:
-        text += str(arg)
-    PRINT(text)
+        text += str(arg) + ' '
+    if output:
+        PRINT(text)
     with open('./chatroom.log', 'a+', encoding='utf-8') as f:
-        text_nocolor = ''
-        text_list = text.split('\n')
-        for text in text_list:
-            if '\033' in text:
-                tmp_text = ''
-                tmp_list = text.split('\033')
-                for tmp in tmp_list:
-                    if 'm' in tmp:
-                        tmp_text += 'm'.join(tmp.split('m')[1:])
-                    else:
-                        tmp_text += tmp
-                text = tmp_text
-            text_nocolor += text + '\n'
-
-        f.write(text_nocolor + '\n')
+        f.write(text + '\n')
