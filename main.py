@@ -43,7 +43,7 @@ def resize(any_file: str, scale: tuple[int | float, int | float]) -> str:
         image.save(new_file, 'png')
         os.remove(png_file)
     except IOError as e:
-        print(f'处理（或缩放）图像失败: {e}，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        print(f'处理（或缩放）图像失败: {e}')
     return new_file
 
 async def sendemail(msg_to, subject, content):
@@ -57,9 +57,9 @@ async def sendemail(msg_to, subject, content):
         await smtp.connect(hostname='smtp.qq.com', port=465, use_tls=True)
         await smtp.login(from_addr(), email_password())
         await smtp.send_message(msg)
-        print(f'邮件已发送，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        print(f'邮件已发送')
     except aiosmtplib.SMTPException as e:
-        print(f'邮件发送失败: {e}，Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        print(f'邮件发送失败: {e}')
 
 messages: List[Tuple[str, str, str, str]] = []
 db = ChatRoomDB('./Database/chatroom.db')
@@ -85,7 +85,7 @@ app.add_middleware(AuthMiddleware)
 def black_user():
     username = app.storage.user.get('username')
     if username in blacklist:
-        print('BLACK_USER:'+username)
+        print('BLACK_USER:', username)
         black_label = blacklist[username]
         ui.markdown(black_label if black_label else '# 滚!')
     else:
@@ -122,11 +122,7 @@ def signin():
         length_list.append(len('| INFO: user signed in successfully:'))
         max_length = max(length_list)
         max_length += 1
-        print('+-----------------------------------'                  + '-' * (max_length - length_list[2]) + '+\n' +
-              '| \033[1;34mINFO\033[0m: user signed in successfully:' + ' ' * (max_length - length_list[3]) + '|\n' +
-              f'| User        ->   {user}'                            + ' ' * (max_length - length_list[0]) + '|\n' +
-              f'| Time(Log)   ->   {now}'                             + ' ' * (max_length - length_list[1]) + '|\n' +
-              '+-----------------------------------'                  + '-' * (max_length - length_list[2]) + '+')
+        print(f'user {user} logged in')
         app.storage.user.update({'username': user, 'authenticated': True})
         ui.navigate.to('/')
     with ui.card().classes('absolute-center').style(f'background-color: rgb(235,255,235)').props('flat bordered'):
@@ -213,6 +209,21 @@ def chat_messages(name, dialog_div) -> None:
 
     ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
+def clean_all_message(dialog):
+    global messages
+    dialog.close()
+    messages = []
+    chat_messages.refresh()
+
+def clean_messages(div):
+    with div:
+        with ui.dialog() as dialog, ui.card().classes('justify-center items-center'):
+            ui.label('真的要清空所有消息吗(全局)？')
+            ui.separator().classes('w-full')
+            ui.label('清空').classes('text-red').on('click', lambda: clean_all_message(dialog)).style('cursor: pointer;')
+            ui.label('取消').on('click', dialog.close).style('cursor: pointer;')
+    dialog.open()
+
 @ui.page('/')
 async def main():
     ui.add_css('''
@@ -230,17 +241,7 @@ async def main():
     chat_messages.refresh()
 
     def logout():
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        length_list = [len(i) + 19 for i in (user_id, now)]      # 19是信息前提示词的宽度("| User        ->   "...)
-        length_list.append(len('+-----------------------------------'))
-        length_list.append(len('| INFO: user signed out successfully:'))
-        max_length = max(length_list)
-        max_length += 1
-        print( '+-----------------------------------'                   + '-' * (max_length - length_list[2]) + '+\n' +
-               '| \033[1;34mINFO\033[0m: user signed out successfully:' + ' ' * (max_length - length_list[3]) + '|\n' +
-              f'| User        ->   {user_id}'                           + ' ' * (max_length - length_list[0]) + '|\n' +
-              f'| Time(Log)   ->   {now}'                               + ' ' * (max_length - length_list[1]) + '|\n' +
-               '+-----------------------------------'                   + '-' * (max_length - length_list[2]) + '+')
+        print(f'user {user_id} logged out')
         app.storage.user.clear()
         ui.navigate.to('/signin')
 
@@ -268,8 +269,9 @@ async def main():
         dialog.close()
         if not os.path.exists(str(file)):
             text_value = text.value
+            text_value = mess_head.value + text_value + mess_tail.value
             text.value = ''
-            if not text_value.strip():
+            if not text_value.strip().replace('</USEhtml>', '').replace('<USEhtml>', '').replace('\n', ''):
                 ui.notify('内容不能为空', type='info', position='top')
                 return
             text_value = 'mess::' + text_value
@@ -280,10 +282,11 @@ async def main():
         messages.append((user_id, avatar, text_value, stamp))
 
         # 启用日志会使网站卡顿!
-        # try:
-        #     db.new_message(user_id, text_value)
-        # except UnicodeEncodeError as e:
-        #     print(f'编码错误({e}), Time(Log) -> {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+        try:
+            # db.new_message(user_id, text_value)
+            print(f'new message from {user_id}: "{text_value}"')
+        except UnicodeEncodeError as e:
+            print(f'编码错误, {e}')
         chat_messages.refresh()
         time_now = time()
         if (time_now - time_before) > 75:
@@ -310,17 +313,34 @@ async def main():
         avatar = ''
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')
+    with ui.left_drawer().style('background-color: rgb(233, 247, 239)') as left_drawer:
+        with ui.scroll_area().classes('w-full h-full').props('content-style="padding: 0; gap: 0" content-active-style="padding: 0; gap: 0"'):
+            with ui.column().classes('w-full items-stretch'):
+                with ui.card().style('background-color: rgb(147,207,150)').classes('p-1').props('flat bordered'):
+                    with ui.row().classes('items-center gap-3'):
+                        with ui.avatar(color="#B0B0B0", size='lg').on('click', lambda: ui.navigate.to(main)):
+                            ui.image(avatar)
+                        with ui.column().classes('items-center gap-0 p-0'):
+                            ui.label(user_id[:9] + '...' if len(user_id) > 10 else user_id).classes('text-white').style('font-weight: bold;')
+                            ui.label('管理员' if user_id in admin_users else '普通用户').classes('text-gray-200').style('font-size: 0.8em; font-weight: light;')
+                ui.separator()
+                ui.label('快速操作:').classes('text-sm text-gray-600')
+                with ui.column().classes('gap-1 p-0 w-full items-stretch'):
+                    mess_head = ui.textarea(label='消息前缀', placeholder='@username, ^username').props('dense outlined input-class=mx-3 autogrow')
+                    mess_tail = ui.textarea(label='消息后缀', placeholder='</USEhtml>').props('dense outlined input-class=mx-3 autogrow')
+                if user_id in admin_users:
+                    ui.separator()
+                    ui.label('开发者(谨慎使用):').classes('text-sm text-gray-600')
+                    ui.button('开发者控制台', on_click=lambda: ui.navigate.to('/dev'), icon='developer_mode').classes('w-full').props('size=md flat')
+                    ui.button('清空聊天记录', on_click=lambda: clean_messages(dialog_div), icon='chat').classes('w-full').props('size=md flat')
+                    ui.button('查看实时日志', on_click=lambda: ui.navigate.to('/log'), icon='history').classes('w-full').props('size=md flat')
+                    ui.button('网页运行代码', on_click=lambda: ui.navigate.to('/code'), icon='code').classes('w-full').props('size=md flat')
+                ui.separator()
+                ui.button('注销当前账号', on_click=logout, icon='logout').classes('w-full').props('size=md flat')
 
-    with ui.header(elevated=True).style('background-color: rgb(147,207,150)').classes('items-center p-1'):
+    with ui.header().style('background-color: rgb(147,207,150)').classes('items-center p-3'):
         with ui.row().classes('w-full items-center gap-2'):
-            with ui.card().style('background-color: rgb(111,191,115)').classes('p-1').props('flat bordered'):
-                with ui.row().classes('items-center gap-3'):
-                    with ui.avatar(color="#B0B0B0", size='lg').on('click', lambda: ui.navigate.to(main)):
-                        ui.image(avatar)
-                    with ui.column().classes('items-center gap-0'):
-                        ui.label(user_id[:9] + '...' if len(user_id) > 10 else user_id).classes('text-s text-white')
-                        with ui.button(icon='logout', on_click=logout).props('size=sm push').classes('bg-green'):
-                            ui.tooltip('注销').classes('bg-red').props('transition-show="scale" transition-hide="scale"')
+            ui.button(icon='menu', on_click=left_drawer.toggle).props('flat size=md')
             time_label = ui.label(text=str(datetime.now().strftime("%X"))).classes('text-lg absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%]')
             ui.timer(1.0, lambda: time_label.set_text(str(datetime.now().strftime("%X"))))
 
@@ -437,9 +457,6 @@ def developer() -> None:
             ui.button('回到主页', on_click=return_to_main_page).classes('x-center bg-green').props('size=md push')
         dialog.open()
     else:
-        def clean_messages():
-            global messages
-            messages = []
         def change_var():
             try:
                 exec(f'''global {var.value}
@@ -457,12 +474,12 @@ def developer() -> None:
             web_info = f'**苏ICP备2025180468号 | Copyright © 2025 宋昕哲 | v{VERSION}**'
         ui.query('body').style(f'background-color: rgb(247,255,247)')
         ui.label(f'Hi, {user_id}').classes('subtitle')
-        with ui.card().classes('w-full'), ui.row().classes('w-full'):
+        with ui.card().classes('w-full'), ui.row().classes('w-full') as dialog_div:
             ui.link('实时日志', dev_log).classes('text-green')
             ui.link('运行代码', dev_code).classes('text-green')
             ui.link('关于', about).classes('text-green')
             ui.link('主页', main).classes('text-green')
-        ui.button('清空聊天记录', on_click=clean_messages).classes('bg-green').props('size=md push')
+        ui.button('清空聊天记录', on_click=lambda: clean_messages(dialog_div)).classes('bg-green').props('size=md push')
         ui.button('更新webinfo', on_click=update_webinfo).classes('bg-green').props('size=md push')
         with ui.card():
             ui.label('修改变量：')
@@ -510,6 +527,7 @@ def dev_log() -> None:
         dialog.open()
     else:
         ui.query('body').style(f'background-color: rgb(247,255,247)')
+        ui.link('主页', main).classes('text-green')
         ui.label('RealTimeLog(实时日志):')
         text = ui.log(max_lines=100).classes('w-full h-100 scroll-snap-type scroll-snap-align code-font')
         def download_log() -> None:
@@ -559,6 +577,7 @@ def dev_code() -> None:
             code_output.push('output > \n')
             code_output.push(exec_data['ret'])
 
+        ui.link('主页', main).classes('text-green')
         ui.label('运行Python代码(exec)或使用更新补丁:')
         ui.label('!危险操作!').classes('text-red subtitle')
         with ui.row():
@@ -571,6 +590,8 @@ def dev_code() -> None:
 
 @ui.page('/about')
 def about() -> None:
+    ui.query('body').style(f'background-color: rgb(247,255,247)')
+    ui.link('主页', main).classes('text-green')
     ui.markdown(about_text)
 
 def run(**kwargs) -> None:
