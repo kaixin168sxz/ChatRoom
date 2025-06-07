@@ -278,3 +278,12 @@ class ChatRoomDB(Sqlite3DB):
                 data.append(i)
         data = NO_EXISTS if not data else data
         return data
+    
+    def del_user(self, user: str) -> tuple:
+        """
+        删除用户
+        :param user: 用户名
+        :return: 返回一个元组，元组第二个元素为True表示删除成功
+        """
+        self.del_data(self.user_table, self.user_cols[1], user)
+        return user, True
