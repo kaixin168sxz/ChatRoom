@@ -3,7 +3,7 @@ from datetime import datetime
 EXISTS: str = 'Exists'
 NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
-VERSION = 0.8
+VERSION = 0.9
 
 avatars = {}
 default_avatar = ''
