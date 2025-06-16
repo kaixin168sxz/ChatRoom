@@ -60,8 +60,8 @@ class Sqlite3DB:  # sqlite3 模块操作
         查看连接池数据
         :return:
         """
-        print(self.pool.connections, '连接池的当前连接数量')  # 个人判断可能连接池的当前连接数量
-        print(self.pool.idle_cache, '连接池的空闲数量')  # 源码里面有介绍连接池的空闲数量
+        print('[db]', self.pool.connections, '连接池的当前连接数量')  # 个人判断可能连接池的当前连接数量
+        print('[db]', self.pool.idle_cache, '连接池的空闲数量')  # 源码里面有介绍连接池的空闲数量
 
     def run_sql(self, sql):
         self.create_a_connection()  # 创建数据连接
@@ -174,7 +174,7 @@ class Sqlite3DB:  # sqlite3 模块操作
         # (1, 2, 2, 1, 666, 6))
         # self.cur.execute("UPDATE users SET text1=? WHERE id=?", ('nnn', 1))
         # ---------------------------------------------------------------
-        self.cur.execute(f"UPDATE {table} SET {column}=? WHERE id=?", (content, int(idd)))
+        self.cur.execute(f"UPDATE {table} SET {column}=? WHERE {idd[0]}=?", (content, idd[1]))
         self.connection.commit()  # 提交数据
         self.close_the_connection()  # 关闭数据库连接
 
@@ -216,10 +216,10 @@ class ChatRoomDB(Sqlite3DB):
         try:
             self.insert_data(self.user_table, self.user_cols, (user, password, email, note))
         except sqlite3.IntegrityError:
-            print(f'user {user} already exists.')
+            print(f'[user] user {user} already exists.')
             return EXISTS
         else:
-            print(f'{user} has signed up. email: {email}, note: {note}, password: {password}')
+            print(f'[user] {user} has signed up. email: {email}, note: {note}, password: {password}')
             return OK
 
     def get_user_data(self, user: str) -> list | str:
@@ -252,3 +252,19 @@ class ChatRoomDB(Sqlite3DB):
         """
         self.del_data(self.user_table, self.user_cols[1], user)
         return user, True
+    
+    def change_username(self, old_user: str, new_user: str) -> tuple:
+        """
+        修改用户名
+        :param old_user: 旧用户名
+        :param new_user: 新用户名
+        :return: 返回一个元组，元组第二个元素为True表示修改成功
+        """
+        print(f'[user] Changing username from {old_user} to {new_user}...')
+        try:
+            self.modify_data(self.user_table, self.user_cols[0], (self.user_cols[0], old_user), new_user)
+            print(f'[user] {old_user} has changed to {new_user}.')
+            return NO_EXISTS
+        except sqlite3.IntegrityError:
+            print(f'[user] user {new_user} already exists.')
+            return EXISTS
