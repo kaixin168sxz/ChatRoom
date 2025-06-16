@@ -3,7 +3,6 @@ from copy import copy
 from datetime import datetime
 from email.mime.text import MIMEText
 import random
-import string
 from time import time
 from typing import List, Tuple
 import aiosmtplib
@@ -32,7 +31,7 @@ def heic_to_png(input_file, output_file):
 def resize(any_file: str, scale: tuple[int | float, int | float]) -> str:
     new_file = any_file
     try:
-        png_file = os.path.dirname(any_file) + '/png.' + any_file.split('.')[ :-1]
+        png_file = os.path.dirname(any_file) + '/png.' + any_file.split('/')[-1]
         im = Image.open(any_file)
         im.save(png_file, 'png')
         im.close()
@@ -269,12 +268,13 @@ async def main():
 
     def handle_upload(e: events.UploadEventArguments):
         nonlocal file, send_file
-        file = os.path.join(file_path, str(time()) + '_' + e.name)
+        time_id = str(time()) + '_' + datetime.now().strftime('%Y.%m.%d-%H:%M:%S') + '_'
+        file = os.path.join(file_path, time_id + ''.join(random.sample(random_dict, 50)) + '.' + e.name.split('.')[-1])
         with open(file, 'wb') as f:
             f.write(e.content.read())
         if file.split('.')[-1].lower() == 'heic':
             old_file = file
-            file = '.'.join(file.split('.')[: -1]) + '.jpg'
+            file = '.'.join(file.split('.')[: -1]) + '.png'
             heic_to_png(old_file, file)
             os.remove(old_file)
         if use_resize:
@@ -286,25 +286,21 @@ async def main():
     
     def handle_upload_avatar(e: events.UploadEventArguments):
         nonlocal change_avatar, avatar_file
-        if e.name.split('.')[-1] not in ['png', 'jpg', 'jpeg', 'heic']:
-            ui.notify('文件格式错误')
+        if e.name.split('.')[-1].lower() not in ['png', 'jpg', 'jpeg', 'heic']:
+            ui.notify('文件格式错误', type='warning', position='top')
             return 
-        try:
-            time_id = str(time()) + '_' + datetime.now().strftime('%Y/%m/%d %H:%M:%S')
-            avatar_file = os.path.join(avatars_path, time_id + random.sample(string.digits + string.ascii_lowercase, 16))
-            print(avatar_file)
-            with open(avatar_file, 'wb') as f:
-                f.write(e.content.read())
-            if avatar_file.split('.')[-1].lower() == 'heic':
-                old_file = avatar_file
-                avatar_file = '.'.join(avatar_file.split('.')[: -1]) + '.jpg'
-                heic_to_png(old_file, avatar_file)
-                os.remove(old_file)
-            if avatar_file.split('.')[-1].lower() in ['png', 'jpg', 'jpeg']:
-                avatar_file = resize(avatar_file, avatar_resize_tuple)
-            ui.notify('头像已上传', position='top', type='info', color='green')
-        except BaseException as e:
-            print(e)
+        time_id = str(time()) + '_' + datetime.now().strftime('%Y.%m.%d-%H:%M:%S') + '_'
+        avatar_file = os.path.join(avatars_path, time_id + ''.join(random.sample(random_dict, 50)) + '.' + e.name.split('.')[-1])
+        with open(avatar_file, 'wb') as f:
+            f.write(e.content.read())
+        if avatar_file.split('.')[-1].lower() == 'heic':
+            old_file = avatar_file
+            avatar_file = '.'.join(avatar_file.split('.')[:-1]) + '.png'
+            heic_to_png(old_file, avatar_file)
+            os.remove(old_file)
+        if avatar_file.split('.')[-1].lower() in ['png', 'jpg', 'jpeg']:
+            avatar_file = resize(avatar_file, avatar_resize_tuple)
+        ui.notify('头像已上传', position='top', type='info', color='green')
 
     async def send() -> None:
         nonlocal file
@@ -382,7 +378,7 @@ async def main():
     
     with ui.dialog() as dialog, ui.column().classes('p-2'):
         # ui.upload(on_upload=handle_upload, auto_upload=True).props('accept=.png').classes('max-w-full')
-        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', max_files=1).classes('max-w-full')
+        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件').classes('max-w-full')
         send_file = ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green x-center')
 
     with ui.dialog() as change_name_dialog, ui.card():
@@ -390,7 +386,7 @@ async def main():
         ui.button('修改', on_click=change_username).classes('bg-green x-center').props('size=md push')
     
     with ui.dialog() as change_avatar_dialog, ui.column().classes('p-2'):
-        ui.upload(on_upload=handle_upload_avatar, auto_upload=True, label='请选择新的头像', max_files=1).classes('max-w-full')
+        ui.upload(on_upload=handle_upload_avatar, auto_upload=True, label='请选择新的头像').classes('max-w-full')
         change_avatar = ui.button('修改', on_click=change_useravatar).classes('bg-green x-center').props('size=md push')
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')

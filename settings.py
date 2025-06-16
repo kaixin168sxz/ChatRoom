@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+import string
 
 PRINT = print
 output = True
@@ -106,6 +107,7 @@ NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
 VERSION = '1.0 beta1'
 
+random_dict = string.digits + string.ascii_lowercase + string.ascii_uppercase
 avatars = {}
 default_avatar = ''
 avatars_path = 'avatars'
