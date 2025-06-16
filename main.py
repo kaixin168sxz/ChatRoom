@@ -286,9 +286,13 @@ async def main():
     
     def handle_upload_avatar(e: events.UploadEventArguments):
         nonlocal change_avatar, avatar_file
+        if e.name.split('.')[-1] not in ['png', 'jpg', 'jpeg', 'heic']:
+            ui.notify('文件格式错误')
+            return 
         try:
             time_id = str(time()) + '_' + datetime.now().strftime('%Y/%m/%d %H:%M:%S')
             avatar_file = os.path.join(avatars_path, time_id + random.sample(string.digits + string.ascii_lowercase, 16))
+            print(avatar_file)
             with open(avatar_file, 'wb') as f:
                 f.write(e.content.read())
             if avatar_file.split('.')[-1].lower() == 'heic':
@@ -377,18 +381,16 @@ async def main():
         ui.navigate.to('/')
     
     with ui.dialog() as dialog, ui.column().classes('p-2'):
-        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', \
-                  on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=80_000_000).classes('max-w-full')
+        # ui.upload(on_upload=handle_upload, auto_upload=True).props('accept=.png').classes('max-w-full')
+        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', max_files=1).classes('max-w-full')
         send_file = ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green x-center')
 
     with ui.dialog() as change_name_dialog, ui.card():
-        new_name_input = ui.input('新的用户名', placeholder='请输入新的用户名').props('dense outlined').classes('w-full')\
-            .on('keydown.enter', change_username)
+        new_name_input = ui.input('新的用户名', placeholder='请输入新的用户名').props('dense outlined').classes('w-full').on('keydown.enter', change_username)
         ui.button('修改', on_click=change_username).classes('bg-green x-center').props('size=md push')
     
     with ui.dialog() as change_avatar_dialog, ui.column().classes('p-2'):
-        ui.upload(on_upload=handle_upload_avatar, auto_upload=True, label='请选择新的头像', \
-                  on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=80_000_000).classes('max-w-full')
+        ui.upload(on_upload=handle_upload_avatar, auto_upload=True, label='请选择新的头像', max_files=1).classes('max-w-full')
         change_avatar = ui.button('修改', on_click=change_useravatar).classes('bg-green x-center').props('size=md push')
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')
