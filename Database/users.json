@@ -5,9 +5,7 @@
         "螃蟹",
         "admin"
     ],
-    "replace": {
-        "admin": "AdminUser"
-    },
+    "replace": {},
     "markdown": [
         "admin",
         "debugger",
