@@ -311,8 +311,12 @@ async def main():
         new_user = new_name_input.value
         print(f'[user] {old_user} is trying to change username to {new_user}')
         if not new_user.strip():
-            print('[user] new name is empty')
+            print(f'[user] new name {new_user} is empty')
             ui.notify('用户名不能为空', type='warning', position='top')
+            return
+        elif len(new_user) > 10:
+            print(f'[user] new name {new_user} is too long')
+            ui.notify('用户名不能超过10个字符', type='warning', position='top')
             return
         if db.change_username(old_user, new_user) is NO_EXISTS:
             app.storage.user['username'] = new_user
@@ -324,6 +328,7 @@ async def main():
                 admin_users.add(new_user)
             ui.notify('用户名修改成功', type='info', position='top')
             change_name_dialog.close()
+            ui.navigate.to('/')
         else:
             ui.notify('用户名已存在', type='warning', position='top')
 
@@ -363,7 +368,7 @@ async def main():
                         mess_tail = ui.textarea(label='消息后缀', placeholder='使用回车换行').props('dense outlined input-class=mx-3 autogrow')
                 ui.separator()
                 with ui.column().classes('w-full items-stretch gap-0'):
-                    ui.markdown('**扫码添加站长微信**').classes('text-gray-600')
+                    ui.markdown('**长按或右击保存二维码，通过扫码添加站长微信**').classes('text-xs text-gray-600')
                     ui.image('/web_files/wechat.png')
                 if user_id in admin_users:
                     ui.separator()
@@ -426,12 +431,19 @@ def signup() -> None:
     else:
         def try_signup() -> None:
             if '燕湖' not in verify.value:
+                print('school vierify error:', verify.value)
                 ui.notify('学校验证错误', type='warning', position='top')
                 return
             if not username.value:
+                print('[user] name {username.value}is empty')
                 ui.notify('用户名不能为空', type='warning', position='top')
             elif not password.value:
+                print('[user] password is empty')
                 ui.notify('密码不能为空', type='warning', position='top')
+            elif len(username.value) > 10:
+                print(f'[user] name {username.value} is too long')
+                ui.notify('用户名不能超过10个字符', type='warning', position='top')
+                return
             # elif email.value and email.value.count('@') != 1:
             #     ui.notify('邮件格式错误', type='warning', position='top')
             # elif not email.value and email_switch.value:
@@ -440,6 +452,7 @@ def signup() -> None:
                 if password.value == retry_password.value:
                     try_db = db.sign_up(username.value, password.value, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                     if try_db == EXISTS:
+                        print('[user] username exists:', username.value)
                         ui.notify('用户名已存在', type='warning', position='top')
                         return
                     ui.notify('注册成功', type='info', position='top')
