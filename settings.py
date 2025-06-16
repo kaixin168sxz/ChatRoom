@@ -120,4 +120,4 @@ allow_blackuser = {'/signin', '/signup', '/black_user'}
 use_markdown = Config('./Database/users.json', 'markdown')
 admin_users = Config('./Database/users.json', 'admin')
 use_html = Config('./Database/users.json', 'html')
-web_info = f'**苏ICP备2025180468号 | Copyright © 2025 宋昕哲 | v{VERSION}**'
+web_info = f'**苏ICP备2025180468号 | © 2025 宋昕哲 | v{VERSION}**'

@@ -20,13 +20,8 @@ def storage_secret():
 加密成pyd或so   (可选，建议使用)
 
 ### 安装依赖
-> 建议使用venv
 
-```zsh
-pip3 install -r requirements.txt
-```
-
-或使用uv管理
+使用uv管理
 
 ```zsh
 uv sync
