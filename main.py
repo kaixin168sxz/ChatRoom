@@ -461,7 +461,7 @@ def signup() -> None:
             # email = ui.input('邮箱（可选）', on_change=update_switch_val).classes('inline-flex').props('dense outlined').on('keydown.enter', try_signup)
             # email_switch = ui.switch('邮箱通知').props('icon="mail" color="green"').bind_visibility_from(email, 'value')
             ui.label('身份验证').classes('text-md text-gray-600')
-            verify = ui.input('您的小学是').classes('inline-flex').props('dense outlined').on('keydown.enter', try_signup)
+            verify = ui.input('填写小学校名').classes('inline-flex').props('dense outlined').on('keydown.enter', try_signup)
             with ui.button('注册', on_click=try_signup).classes('x-center bg-green').props('size=md push'):
                 ui.tooltip('立即注册用户').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
             with ui.row().classes('w-full items-center gap-2'):
