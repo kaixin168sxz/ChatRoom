@@ -26,6 +26,12 @@ def storage_secret():
 pip3 install -r requirements.txt
 ```
 
+或使用uv管理
+
+```zsh
+uv sync
+```
+
 ### 运行程序
 
 ```zsh
