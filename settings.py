@@ -104,7 +104,7 @@ class Config:
 EXISTS: str = 'Exists'
 NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
-VERSION = 0.9
+VERSION = '1.0 beta1'
 
 avatars = {}
 default_avatar = ''
