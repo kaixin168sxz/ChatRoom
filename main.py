@@ -2,6 +2,8 @@ import os
 from copy import copy
 from datetime import datetime
 from email.mime.text import MIMEText
+import random
+import string
 from time import time
 from typing import List, Tuple
 import aiosmtplib
@@ -15,7 +17,7 @@ from passwd import *
 from PIL import Image
 import pillow_heif
 
-def heic_to_jpg(input_file, output_file):
+def heic_to_png(input_file, output_file):
     heif_file = pillow_heif.read_heif(input_file)
     image = Image.frombytes(
         heif_file.mode,
@@ -30,7 +32,7 @@ def heic_to_jpg(input_file, output_file):
 def resize(any_file: str, scale: tuple[int | float, int | float]) -> str:
     new_file = any_file
     try:
-        png_file = os.path.dirname(any_file) + '/png.' + any_file.split('.')[-1]
+        png_file = os.path.dirname(any_file) + '/png.' + any_file.split('.')[ :-1]
         im = Image.open(any_file)
         im.save(png_file, 'png')
         im.close()
@@ -161,6 +163,15 @@ def delete_message(num: int, dialog) -> None:
 def chat_messages(name, dialog_div) -> None:
     for i in range(len(messages)):
         user_id, avatar, text, stamp = messages[i]
+        avatar_db = db.get_user_data(user_id)[-1]
+        if avatar:
+            pass
+        elif user_id in avatars:
+            avatar = avatars[user_id]
+        elif avatar_db:
+            avatar = avatar_db
+        else:
+            avatar = default_avatar
 
         if name not in [*admin_users, user_id]:
             # 如果消息开头为@并且用户没有被@，则不显示消息（只有被@才显示）
@@ -188,7 +199,7 @@ def chat_messages(name, dialog_div) -> None:
         with ui.column().classes('gap-0').style('margin-top: 0; margin-bottom: 0;'+show_side):
             with ui.chat_message(stamp=stamp, avatar=avatar, sent=name == user_id, name=show_id):
                 if text[:6] == 'file::':
-                    url = file_url + text[6:].split('/')[-1]
+                    url = file_url + '/' + text[6:].split('/')[-1]
                     ui.label(f'附件({url})：')
                     if text.split('.')[-1].lower() in ['png', 'jpg', 'jpeg']:
                         ui.image(url).classes('w-56').props('loading="lazy"')
@@ -235,6 +246,16 @@ async def main():
         ''')
     ui.colors(primary='rgb(68,157,72)')
     file = ''
+    avatar_file = ''
+    user_id = app.storage.user.get('username')
+
+    avatar_db = db.get_user_data(user_id)[-1]
+    if user_id in avatars:
+        avatar = avatars[user_id]
+    elif avatar_db:
+        avatar = avatar_db
+    else:
+        avatar = default_avatar
 
     if not app.storage.user.get('authenticated', False):
         return RedirectResponse('/signin')
@@ -254,33 +275,53 @@ async def main():
         if file.split('.')[-1].lower() == 'heic':
             old_file = file
             file = '.'.join(file.split('.')[: -1]) + '.jpg'
-            heic_to_jpg(old_file, file)
+            heic_to_png(old_file, file)
             os.remove(old_file)
         if use_resize:
             if file.split('.')[-1].lower() in ['png', 'jpg', 'jpeg']:
                 file = resize(file, resize_tuple)
         else:
             file = resize(file, (1, 1))
-        ui.notify('附件已上传', position='top', type='info')
-        send_file.set_visibility(True)
+        ui.notify('附件已上传', position='top', type='info', color='green')
+    
+    def handle_upload_avatar(e: events.UploadEventArguments):
+        nonlocal change_avatar, avatar_file
+        try:
+            time_id = str(time()) + '_' + datetime.now().strftime('%Y/%m/%d %H:%M:%S')
+            avatar_file = os.path.join(avatars_path, time_id + random.sample(string.digits + string.ascii_lowercase, 16))
+            with open(avatar_file, 'wb') as f:
+                f.write(e.content.read())
+            if avatar_file.split('.')[-1].lower() == 'heic':
+                old_file = avatar_file
+                avatar_file = '.'.join(avatar_file.split('.')[: -1]) + '.jpg'
+                heic_to_png(old_file, avatar_file)
+                os.remove(old_file)
+            if avatar_file.split('.')[-1].lower() in ['png', 'jpg', 'jpeg']:
+                avatar_file = resize(avatar_file, avatar_resize_tuple)
+            ui.notify('头像已上传', position='top', type='info', color='green')
+        except BaseException as e:
+            print(e)
 
     async def send() -> None:
         nonlocal file
         global time_before
         dialog.close()
-        if not os.path.exists(str(file)):
+        if not file:
             text_value = text.value
             text_value = mess_head.value + text_value + mess_tail.value
             text.value = ''
-            if not text_value.strip().replace('</USEhtml>', '').replace('<USEhtml>', '').replace('\n', ''):
-                ui.notify('内容不能为空', type='info', position='top')
+            if not text_value.strip().replace('</USEhtml>', '').replace('\n', ''):
+                ui.notify('内容不能为空', type='info', position='top', color='green')
                 return
             text_value = 'mess::' + text_value
         else:
-            text_value = 'file::' + file
+            if not os.path.exists(str(file)):
+                ui.notify('文件不存在', type='warning', position='top')
+            else:
+                text_value = 'file::' + file
         file = ''
         stamp = datetime.now().strftime('%X')
-        messages.append((user_id, avatar, text_value, stamp))
+        messages.append((user_id, '', text_value, stamp))
 
         # 启用日志会使网站卡顿!
         try:
@@ -295,15 +336,8 @@ async def main():
             text_value_send = text_value[6:]
             if text_value[:6] == 'file::':
                 text_value_send += '\n(请在浏览器中查看附件)'
-            for i in db.get_all_emails():
-                if i[1] != user_id:
-                    await sendemail(i[-2], f'你收到了一条来自{user_id}的消息【聊天室】', text_value_send)
-
-    with ui.dialog() as dialog, ui.column():
-        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', \
-                  on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=80_000_000).classes('max-w-full')
-        send_file = ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green x-center')
-        send_file.set_visibility(False)
+            if 'admin' != user_id:
+                await sendemail('kaixin168kx@163.com', f'你收到了一条来自{user_id}的消息【聊天室】', text_value_send)
 
     def change_username():
         global replace_username, admin_users
@@ -326,25 +360,36 @@ async def main():
             if old_user in admin_users:
                 admin_users.remove(old_user)
                 admin_users.add(new_user)
-            ui.notify('用户名修改成功', type='info', position='top')
+            ui.notify('用户名修改成功', type='info', position='top', color='green')
             change_name_dialog.close()
             ui.navigate.to('/')
         else:
             ui.notify('用户名已存在', type='warning', position='top')
 
+    def change_useravatar():
+        nonlocal avatar_file
+        if not os.path.exists(avatar_file):
+            ui.notify('未找到文件', type='warning', position='top')
+            return
+        db.change_useravatar(user_id, avatar_file)
+        avatar_file = ''
+        ui.notify('已修改头像')
+        ui.navigate.to('/')
+    
+    with ui.dialog() as dialog, ui.column().classes('p-2'):
+        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', \
+                  on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=80_000_000).classes('max-w-full')
+        send_file = ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green x-center')
+
     with ui.dialog() as change_name_dialog, ui.card():
         new_name_input = ui.input('新的用户名', placeholder='请输入新的用户名').props('dense outlined').classes('w-full')\
             .on('keydown.enter', change_username)
         ui.button('修改', on_click=change_username).classes('bg-green x-center').props('size=md push')
-
-    user_id = app.storage.user.get('username')
-
-    if user_id in avatars:
-        avatar = avatars[user_id]
-    elif default_avatar:
-        avatar = default_avatar
-    else:
-        avatar = ''
+    
+    with ui.dialog() as change_avatar_dialog, ui.column().classes('p-2'):
+        ui.upload(on_upload=handle_upload_avatar, auto_upload=True, label='请选择新的头像', \
+                  on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=80_000_000).classes('max-w-full')
+        change_avatar = ui.button('修改', on_click=change_useravatar).classes('bg-green x-center').props('size=md push')
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')
     with ui.left_drawer().style('background-color: rgb(233, 247, 239)') as left_drawer:
@@ -380,6 +425,7 @@ async def main():
                 ui.separator()
                 ui.label('用户操作:').classes('text-sm text-gray-600')
                 ui.button('修改账号名称', on_click=change_name_dialog.open, icon='edit').classes('w-full').props('size=md flat')
+                ui.button('修改账号头像', on_click=change_avatar_dialog.open, icon='image').classes('w-full').props('size=md flat')
                 ui.button('退出当前账号', on_click=logout, icon='logout').classes('w-full').props('size=md flat')
                 ui.button('关于本聊天室', on_click=lambda: ui.navigate.to(about), icon='info').classes('w-full').props('size=md flat')
 
@@ -455,7 +501,7 @@ def signup() -> None:
                         print('[user] username exists:', username.value)
                         ui.notify('用户名已存在', type='warning', position='top')
                         return
-                    ui.notify('注册成功', type='info', position='top')
+                    ui.notify('注册成功', type='info', position='top', color='green')
                     ui.navigate.to('/signin')
                 else:
                     ui.notify('密码和确认密码不相同', type='warning', position='top')
@@ -679,8 +725,8 @@ def show_files_in_files(dir: str) -> None:
             ui.markdown(f'[/{dir}/{i}](/{dir}/{i})').classes('p-0 gap-0')
 
 def run(**kwargs) -> None:
-    app.add_static_files('/files', 'files')
-    app.add_static_files('/avatars', 'avatars')
-    app.add_static_files('/db', 'Database')
-    app.add_static_files('/web_files', 'web_files')
+    app.add_static_files(file_url, file_path)
+    app.add_static_files(avatars_url, avatars_path)
+    app.add_static_files(database_url, database_path)
+    app.add_static_files(web_files_url, web_files_path)
     ui.run(**kwargs)
