@@ -43,7 +43,7 @@ def resize(any_file: str, scale: tuple[int | float, int | float]) -> str:
         image.save(new_file, 'png')
         os.remove(png_file)
     except IOError as e:
-        print(f'处理（或缩放）图像失败: {e}')
+        print(f'[file] 处理（或缩放）图像失败: {e}')
     return new_file
 
 async def sendemail(msg_to, subject, content):
@@ -57,9 +57,9 @@ async def sendemail(msg_to, subject, content):
         await smtp.connect(hostname='smtp.qq.com', port=465, use_tls=True)
         await smtp.login(from_addr(), email_password())
         await smtp.send_message(msg)
-        print(f'邮件已发送')
+        print(f'[email] 邮件已发送')
     except aiosmtplib.SMTPException as e:
-        print(f'邮件发送失败: {e}')
+        print(f'[email] 邮件发送失败: {e}')
 
 messages: List[Tuple[str, str, str, str]] = []
 db = ChatRoomDB('./Database/chatroom.db')
@@ -75,7 +75,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 app.storage.user['referrer_path'] = request.url.path
                 return RedirectResponse('/signin')
         else:
-            if app.storage.user.get('username') in blacklist and request.url.path not in allow_blackuser:
+            if app.storage.user.get('username') in blacklist.keys() and request.url.path not in allow_blackuser:
                 return RedirectResponse('/black_user')
         return await call_next(request)
 
@@ -84,8 +84,8 @@ app.add_middleware(AuthMiddleware)
 @ui.page('/black_user')
 def black_user():
     username = app.storage.user.get('username')
-    if username in blacklist:
-        print('BLACK_USER:', username)
+    if username in blacklist.keys():
+        print('[user] BLACK_USER:', username)
         black_label = blacklist[username]
         ui.markdown(black_label if black_label else '# 滚!')
     else:
@@ -122,7 +122,7 @@ def signin():
         length_list.append(len('| INFO: user signed in successfully:'))
         max_length = max(length_list)
         max_length += 1
-        print(f'user {user} logged in')
+        print(f'[user] user {user} logged in')
         app.storage.user.update({'username': user, 'authenticated': True})
         ui.navigate.to('/')
     with ui.card().classes('absolute-center').style(f'background-color: rgb(235,255,235)').props('flat bordered'):
@@ -182,7 +182,7 @@ def chat_messages(name, dialog_div) -> None:
                     continue
 
         show_id = user_id
-        if user_id in replace_username:
+        if user_id in replace_username.keys():
             show_id = replace_username[user_id]
         show_side = ' margin-left: auto;' if name == user_id else ' margin-right: auto;'
         with ui.column().classes('gap-0').style('margin-top: 0; margin-bottom: 0;'+show_side):
@@ -205,7 +205,8 @@ def chat_messages(name, dialog_div) -> None:
                     else:
                         ui.label(text[6:])
             if name == user_id:
-                ui.label('撤回').on('click', lambda num=i: really_delete_message(num, dialog_div)).props('size=xs').style('cursor: pointer; color: rgb(100, 100, 100);')
+                ui.label('撤回').on('click', lambda num=i: really_delete_message(num, dialog_div)).props('size=xs')\
+                    .style('cursor: pointer; color: rgb(100, 100, 100);')
 
     ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
@@ -241,7 +242,7 @@ async def main():
     chat_messages.refresh()
 
     def logout():
-        print(f'user {user_id} logged out')
+        print(f'[user] user {user_id} logged out')
         app.storage.user.clear()
         ui.navigate.to('/signin')
 
@@ -284,9 +285,9 @@ async def main():
         # 启用日志会使网站卡顿!
         try:
             # db.new_message(user_id, text_value)
-            print(f'new message from {user_id}: "{text_value}"')
+            print(f'[message] new message from {user_id}: "{text_value}"')
         except UnicodeEncodeError as e:
-            print(f'编码错误, {e}')
+            print(f'[message] 编码错误, {e}')
         chat_messages.refresh()
         time_now = time()
         if (time_now - time_before) > 75:
@@ -299,9 +300,37 @@ async def main():
                     await sendemail(i[-2], f'你收到了一条来自{user_id}的消息【聊天室】', text_value_send)
 
     with ui.dialog() as dialog, ui.column():
-        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=80_000_000).classes('max-w-full')
+        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', \
+                  on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=80_000_000).classes('max-w-full')
         send_file = ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green x-center')
         send_file.set_visibility(False)
+
+    def change_username():
+        global replace_username, admin_users
+        old_user = app.storage.user.get('username')
+        new_user = new_name_input.value
+        print(f'[user] {old_user} is trying to change username to {new_user}')
+        if not new_user.strip():
+            print('[user] new name is empty')
+            ui.notify('用户名不能为空', type='warning', position='top')
+            return
+        if db.change_username(old_user, new_user) is NO_EXISTS:
+            app.storage.user['username'] = new_user
+            if old_user in replace_username.keys():
+                # 更新替换用户名字典, pop()方法用于删除字典中指定的键，并返回该键对应的值
+                replace_username[new_user] = replace_username.pop(old_user)
+            if old_user in admin_users:
+                admin_users.remove(old_user)
+                admin_users.add(new_user)
+            ui.notify('用户名修改成功', type='info', position='top')
+            change_name_dialog.close()
+        else:
+            ui.notify('用户名已存在', type='warning', position='top')
+
+    with ui.dialog() as change_name_dialog, ui.card():
+        new_name_input = ui.input('新的用户名', placeholder='请输入新的用户名').props('dense outlined').classes('w-full')\
+            .on('keydown.enter', change_username)
+        ui.button('修改', on_click=change_username).classes('bg-green x-center').props('size=md push')
 
     user_id = app.storage.user.get('username')
 
@@ -314,20 +343,28 @@ async def main():
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')
     with ui.left_drawer().style('background-color: rgb(233, 247, 239)') as left_drawer:
+        with ui.card().style('background-color: rgb(147,207,150)').classes('p-1 w-full').props('flat bordered'):
+            with ui.row().classes('items-center gap-3'):
+                with ui.avatar(color="#B0B0B0", size='lg').on('click', lambda: ui.navigate.to(main)):
+                    ui.image(avatar)
+                with ui.column().classes('gap-0 p-0'):
+                    ui.label(user_id[:9] + '...' if len(user_id) > 20 else user_id).classes('text-white').style('font-weight: bold;')
+                    ui.label('管理员' if user_id in admin_users else '普通用户').classes('text-gray-200').style('font-size: 0.8em; font-weight: light;')
+        ui.separator()
         with ui.scroll_area().classes('w-full h-full').props('content-style="padding: 0; gap: 0" content-active-style="padding: 0; gap: 0"'):
             with ui.column().classes('w-full items-stretch'):
-                with ui.card().style('background-color: rgb(147,207,150)').classes('p-1').props('flat bordered'):
-                    with ui.row().classes('items-center gap-3'):
-                        with ui.avatar(color="#B0B0B0", size='lg').on('click', lambda: ui.navigate.to(main)):
-                            ui.image(avatar)
-                        with ui.column().classes('items-center gap-0 p-0'):
-                            ui.label(user_id[:9] + '...' if len(user_id) > 10 else user_id).classes('text-white').style('font-weight: bold;')
-                            ui.label('管理员' if user_id in admin_users else '普通用户').classes('text-gray-200').style('font-size: 0.8em; font-weight: light;')
+                with ui.column().classes('w-full items-stretch gap-0'):
+                    ui.label('快速操作:').classes('text-sm text-gray-600')
+                    with ui.column().classes('gap-1 p-0 w-full items-stretch'):
+                        ui.markdown('**可以用这个功能来快速屏蔽或指定用户**').classes('text-xs text-gray-600 p-0 gap-0')
+                        mess_head = ui.textarea(label='消息前缀', placeholder='使用回车换行').props('dense outlined input-class=mx-3 autogrow')
+                        # if user_id != '巴儿':
+                        #     mess_head.set_value('^巴儿:')
+                        mess_tail = ui.textarea(label='消息后缀', placeholder='使用回车换行').props('dense outlined input-class=mx-3 autogrow')
                 ui.separator()
-                ui.label('快速操作:').classes('text-sm text-gray-600')
-                with ui.column().classes('gap-1 p-0 w-full items-stretch'):
-                    mess_head = ui.textarea(label='消息前缀', placeholder='@username, ^username').props('dense outlined input-class=mx-3 autogrow')
-                    mess_tail = ui.textarea(label='消息后缀', placeholder='</USEhtml>').props('dense outlined input-class=mx-3 autogrow')
+                with ui.column().classes('w-full items-stretch gap-0'):
+                    ui.markdown('**扫码添加站长微信**').classes('text-gray-600')
+                    ui.image('/web_files/wechat.png')
                 if user_id in admin_users:
                     ui.separator()
                     ui.label('开发者(谨慎使用):').classes('text-sm text-gray-600')
@@ -336,11 +373,14 @@ async def main():
                     ui.button('查看实时日志', on_click=lambda: ui.navigate.to('/log'), icon='history').classes('w-full').props('size=md flat')
                     ui.button('网页运行代码', on_click=lambda: ui.navigate.to('/code'), icon='code').classes('w-full').props('size=md flat')
                 ui.separator()
-                ui.button('注销当前账号', on_click=logout, icon='logout').classes('w-full').props('size=md flat')
+                ui.label('用户操作:').classes('text-sm text-gray-600')
+                ui.button('修改账号名称', on_click=change_name_dialog.open, icon='edit').classes('w-full').props('size=md flat')
+                ui.button('退出当前账号', on_click=logout, icon='logout').classes('w-full').props('size=md flat')
+                ui.button('关于本聊天室', on_click=lambda: ui.navigate.to(about), icon='info').classes('w-full').props('size=md flat')
 
     with ui.header().style('background-color: rgb(147,207,150)').classes('items-center p-3'):
         with ui.row().classes('w-full items-center gap-2'):
-            ui.button(icon='menu', on_click=left_drawer.toggle).props('flat size=md')
+            ui.button(text='请点击我', on_click=left_drawer.toggle).props('flat size=md').classes('text-white').style('font-weight: bold;')
             time_label = ui.label(text=str(datetime.now().strftime("%X"))).classes('text-lg absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%]')
             ui.timer(1.0, lambda: time_label.set_text(str(datetime.now().strftime("%X"))))
 
@@ -385,17 +425,20 @@ def signup() -> None:
         # ui.navigate.to('/signin')
     else:
         def try_signup() -> None:
+            if '燕湖' not in verify.value:
+                ui.notify('学校验证错误', type='warning', position='top')
+                return
             if not username.value:
                 ui.notify('用户名不能为空', type='warning', position='top')
             elif not password.value:
                 ui.notify('密码不能为空', type='warning', position='top')
-            elif email.value and email.value.count('@') != 1:
-                ui.notify('邮件格式错误', type='warning', position='top')
-            elif not email.value and email_switch.value:
-                ui.notify('要使用邮箱通知，请输入邮箱', type='warning', position='top')
+            # elif email.value and email.value.count('@') != 1:
+            #     ui.notify('邮件格式错误', type='warning', position='top')
+            # elif not email.value and email_switch.value:
+            #     ui.notify('要使用邮箱通知，请输入邮箱', type='warning', position='top')
             else:
                 if password.value == retry_password.value:
-                    try_db = db.sign_up(username.value, password.value, email.value, {True: 'EmailSend', False: 'EmailNoSend'}[email_switch.value])
+                    try_db = db.sign_up(username.value, password.value, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                     if try_db == EXISTS:
                         ui.notify('用户名已存在', type='warning', position='top')
                         return
@@ -410,13 +453,15 @@ def signup() -> None:
             username = ui.input('用户').classes('fill').props('dense outlined')
             password = ui.input('密码', password=True).classes('inline-flex').props('dense outlined')
             retry_password = ui.input('再次确认密码', password=True).classes('inline-flex').props('dense outlined')
-            def update_switch_val():
-                if email.value:
-                    email_switch.set_value(True)
-                else:
-                    email_switch.set_value(False)
-            email = ui.input('邮箱（可选）', on_change=update_switch_val).classes('inline-flex').props('dense outlined').on('keydown.enter', try_signup)
-            email_switch = ui.switch('邮箱通知').props('icon="mail" color="green"').bind_visibility_from(email, 'value')
+            # def update_switch_val():
+            #     if email.value:
+            #         email_switch.set_value(True)
+            #     else:
+            #         email_switch.set_value(False)
+            # email = ui.input('邮箱（可选）', on_change=update_switch_val).classes('inline-flex').props('dense outlined').on('keydown.enter', try_signup)
+            # email_switch = ui.switch('邮箱通知').props('icon="mail" color="green"').bind_visibility_from(email, 'value')
+            ui.label('身份验证').classes('text-md text-gray-600')
+            verify = ui.input('您的小学是').classes('inline-flex').props('dense outlined').on('keydown.enter', try_signup)
             with ui.button('注册', on_click=try_signup).classes('x-center bg-green').props('size=md push'):
                 ui.tooltip('立即注册用户').classes('bg-green').props('transition-show="scale" transition-hide="scale"')
             with ui.row().classes('w-full items-center gap-2'):
@@ -472,6 +517,14 @@ def developer() -> None:
         def update_webinfo():
             global web_info
             web_info = f'**苏ICP备2025180468号 | Copyright © 2025 宋昕哲 | v{VERSION}**'
+        def change_obj_var():
+            try:
+                var_data = globals()
+                exec(f'''global {var_obj.value}
+ret = {var_obj.value}.{val_obj.value}''', var_data)
+                err_obj.set_text(f'output> {var_data["ret"]}')
+            except BaseException as e:
+                err_obj.set_text('output> [ERR: ' + str(e) + ']')
         ui.query('body').style(f'background-color: rgb(247,255,247)')
         ui.label(f'Hi, {user_id}').classes('subtitle')
         with ui.card().classes('w-full'), ui.row().classes('w-full') as dialog_div:
@@ -498,6 +551,15 @@ def developer() -> None:
                 ui.label('  的值是  ').classes('code-font')
                 val0 = ui.label('[val]').classes('code-font')
                 ui.button('查看', on_click=get_var).classes('bg-green').props('size=md push')
+        with ui.card():
+            ui.label('修改Object对象：')
+            with ui.row().classes('w-full'):
+                ui.label('对Object  ').classes('code-font')
+                var_obj = ui.input('var').props('dense outlined').classes('code-font')
+                ui.label('  执行操作  ').classes('code-font')
+                val_obj = ui.input('val').props('dense outlined').classes('code-font')
+                ui.button('执行', on_click=change_obj_var).classes('bg-green').props('size=md push')
+            err_obj = ui.label('output> ').classes('code-font')
         with ui.card().classes('w-full'):
             ui.markdown('变量(`globals()`):')
             ui.code(str(globals())).classes('w-full')
@@ -592,9 +654,20 @@ def dev_code() -> None:
 def about() -> None:
     ui.query('body').style(f'background-color: rgb(247,255,247)')
     ui.link('主页', main).classes('text-green')
-    ui.markdown(about_text)
+    ui.markdown(about_text).style('word-wrap:break-word;word-break:normal; ')
+
+@ui.page('/dir/{dir}')
+def show_files_in_files(dir: str) -> None:
+    if not os.path.exists(dir):
+        ui.markdown(f'**目录 `{dir}` 不存在!**').classes('text-red')
+        return
+    with ui.column().classes('w-full gap-0 p-0'):
+        for i in os.listdir(dir):
+            ui.markdown(f'[/{dir}/{i}](/{dir}/{i})').classes('p-0 gap-0')
 
 def run(**kwargs) -> None:
     app.add_static_files('/files', 'files')
     app.add_static_files('/avatars', 'avatars')
+    app.add_static_files('/db', 'Database')
+    app.add_static_files('/web_files', 'web_files')
     ui.run(**kwargs)
