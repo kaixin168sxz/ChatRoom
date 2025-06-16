@@ -1,0 +1,24 @@
+{
+    "admin": [
+        "debugger",
+        "kaixin",
+        "螃蟹",
+        "admin"
+    ],
+    "replace": {
+        "admin": "AdminUser"
+    },
+    "markdown": [
+        "admin",
+        "debugger",
+        "kaixin",
+        "螃蟹"
+    ],
+    "html": [
+        "admin",
+        "debugger",
+        "kaixin",
+        "螃蟹"
+    ],
+    "blacklist": {}
+}
