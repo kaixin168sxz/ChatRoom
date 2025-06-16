@@ -258,7 +258,7 @@ class ChatRoomDB(Sqlite3DB):
         修改用户名
         :param old_user: 旧用户名
         :param new_user: 新用户名
-        :return: 返回一个元组，元组第二个元素为True表示修改成功
+        :return: 返回 EXISTS/NO_EXISTS
         """
         print(f'[user] Changing username from {old_user} to {new_user}...')
         try:
@@ -268,3 +268,17 @@ class ChatRoomDB(Sqlite3DB):
         except sqlite3.IntegrityError:
             print(f'[user] user {new_user} already exists.')
             return EXISTS
+    
+    def change_useravatar(self, user: str, avatar: str):
+        """
+        修改用户名
+        :param user: 用户名
+        :param avatar: 新头像
+        :return: 返回None
+        """
+        print(f'[user] Changing {user}\'s avatar to {avatar}...')
+        try:
+            self.modify_data(self.user_table, self.user_cols[-1], (self.user_cols[0], user), avatar)
+            print(f'[user] {user}\'s avatar has changed to {avatar}.')
+        except BaseException as e:
+            print(f'[user] Changing user\'s avatar: {e}')
