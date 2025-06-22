@@ -107,6 +107,8 @@ NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
 VERSION = '1.0 beta1'
 
+ai_base_url = "https://api.deepseek.com"
+ai_model = "deepseek-chat"
 random_dict = string.digits + string.ascii_lowercase + string.ascii_uppercase
 avatars = {}
 default_avatar = ''
