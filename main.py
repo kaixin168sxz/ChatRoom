@@ -200,7 +200,6 @@ def display_messages(name, dialog_div) -> None:
         elif avatar_db:
             avatar = avatar_db
         else:
-            print('d')
             avatar = default_avatar
 
         if name not in [*admin_users, user_id]:
