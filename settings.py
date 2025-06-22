@@ -107,11 +107,16 @@ NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
 VERSION = '1.0 beta1'
 
+email_on = True
+ai_on = True
+cmd_on = True
 ai_base_url = "https://api.deepseek.com"
 ai_model = "deepseek-chat"
+ai_sleep_time = 1
+ai_reset_time = 600
 random_dict = string.digits + string.ascii_lowercase + string.ascii_uppercase
 avatars = {}
-default_avatar = ''
+default_avatar = 'avatars/1.png'
 avatars_path = 'avatars'
 avatars_url = '/avatars'
 file_path = 'files'

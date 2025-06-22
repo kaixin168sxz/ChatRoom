@@ -40,10 +40,10 @@ async def ask_ai(message: str, user_id: str):
 
 async def ai_message(message: str, user_id: str):
     global messages, ai_messages, ai_time_before
-    if time() - ai_time_before < 1:
+    if time() - ai_time_before < ai_sleep_time:
         print('[AI] Message too fast, skipping...')
         return
-    if time() - ai_time_before > 5:
+    if time() - ai_time_before > ai_reset_time:
         print('[AI] Auto clean AI messages...')
         ai_messages = [{"role": "system", "content": ai_system},]
     ai_time_before = time()
@@ -153,12 +153,6 @@ def signin():
         if user_data[2][16:-10] != md5_encrypt(passwd)[16:-10]:
             ui.notify('密码错误', position='top', type='warning', color='red')
             return
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        length_list = [len(i) + 19 for i in (user, now)]      # 19是信息前提示词的宽度("| User        ->   "...)
-        length_list.append(len('+-----------------------------------'))
-        length_list.append(len('| INFO: user signed in successfully:'))
-        max_length = max(length_list)
-        max_length += 1
         print(f'[user] user {user} logged in')
         app.storage.user.update({'username': user, 'authenticated': True})
         ui.navigate.to('/')
@@ -206,6 +200,7 @@ def display_messages(name, dialog_div) -> None:
         elif avatar_db:
             avatar = avatar_db
         else:
+            print('d')
             avatar = default_avatar
 
         if name not in [*admin_users, user_id]:
@@ -357,16 +352,55 @@ async def main():
                 ui.notify('文件不存在', type='warning', position='top')
             else:
                 text_value = 'file::' + file
-        if text_value[:11] == 'mess::CMD::':
+        if text_value[:11] == 'mess::CMD::' and cmd_on and user_id in admin_users:
             if text_value[11:] == 'AI::RESET':
-                print('[CMD, AI] Reset AI by hand')
+                output = '[CMD, AI] Reset AI by hand'
+                print(output)
+                messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
+                display_messages.refresh()
                 ai_messages = [{"role": "system", "content": ai_system},]
                 ui.notify('AI已重置', type='info', position='top', color='green')
                 return 
-            if text_value[11:] == 'HELP':
+            elif text_value[11:] == 'HELP':
                 print('[CMD] Help requested')
                 messages.append(('cmd', '', f'mess::@{user_id}:{cmd_help}', datetime.now().strftime('%H:%M:%S')))
                 display_messages.refresh()
+                return
+            elif text_value[11:17] == 'SETVAR':
+                if '=' not in text_value[19:]:
+                    error = '[CMD] SETVAR command: missing "=" sign'
+                    messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
+                    display_messages.refresh()
+                    print(error)
+                    return
+                var_name = text_value[19:].split('=')[0].strip()
+                var_value = text_value[19:].split('=')[1].strip()
+                try:
+                    exec(f'{var_name} = {var_value}', globals())
+                    output = f'[CMD] Set variable {var_name} to {var_value}'
+                    messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
+                    display_messages.refresh()
+                    print(output)
+                except Exception as e:
+                    error = f'[CMD] Error setting variable {var_name}: {e}'
+                    messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
+                    display_messages.refresh()
+                    print(error)
+                return
+            elif text_value[11:17] == 'GETVAR':
+                var_name = text_value[19:].strip()
+                ret = ''
+                try:
+                    ret = eval(var_name, globals())
+                    output = f'[CMD] Get variable {var_name} value: {ret}'
+                    messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
+                    display_messages.refresh()
+                    print(output)
+                except Exception as e:
+                    error = f'[CMD] Error getting variable {var_name}: {e}'
+                    messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
+                    display_messages.refresh()
+                    print(error)
                 return
         file = ''
         stamp = datetime.now().strftime('%X')
@@ -376,13 +410,15 @@ async def main():
 
         text_value_send = text_value[6:]
         email_time_now = time()
-        if (email_time_now - email_time_before) > 75:
+        if (email_time_now - email_time_before) > 75 and email_on:
             email_time_before = copy(email_time_now)
             if text_value[:6] == 'file::':
                 text_value_send += '\n(请在浏览器中查看附件)'
             if 'admin' != user_id:
                 await sendemail('kaixin168kx@163.com', f'你收到了一条来自{user_id}的消息【聊天室】', text_value_send)
-        await ai_message(text_value_send, user_id)
+        if ai_on and text_value[:11] != 'mess::CMD::' and text_value[:6] != 'file::':
+            print(f'[AI] {user_id} is sending message to AI: {text_value_send}')
+            await ai_message(text_value_send, user_id)
 
     def change_username():
         global replace_username, admin_users
