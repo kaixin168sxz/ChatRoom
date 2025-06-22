@@ -15,6 +15,42 @@ from settings import *
 from passwd import *
 from PIL import Image
 import pillow_heif
+from openai import AsyncOpenAI
+
+with open('./doc_cmd.md', 'r', encoding='utf-8') as f:
+    cmd_help = f.read()
+
+client = AsyncOpenAI(api_key=ai_api_key(), base_url=ai_base_url)
+with open('./ai_system.txt', 'r', encoding='utf-8') as f:
+    ai_system = f.read()
+ai_messages = [{"role": "system", "content": ai_system},]
+ai_time_before = 0
+
+async def ask_ai(message: str, user_id: str):
+    ai_messages.append({"role": "user", "content": message})
+    response = await client.chat.completions.create(
+        model=ai_model,
+        messages=ai_messages,
+        stream=False
+    )
+    content = response.choices[0].message.content
+    print(f'[AI] {ai_model} response(from {user_id}):', content)
+    ai_messages.append({"role": "assistant", "content": content})
+    return content
+
+async def ai_message(message: str, user_id: str):
+    global messages, ai_messages, ai_time_before
+    if time() - ai_time_before < 1:
+        print('[AI] Message too fast, skipping...')
+        return
+    if time() - ai_time_before > 5:
+        print('[AI] Auto clean AI messages...')
+        ai_messages = [{"role": "system", "content": ai_system},]
+    ai_time_before = time()
+    response = await ask_ai(message, user_id)
+    messages.append(('', 'avatars/deepseek.png', 'mess::'+response, datetime.now().strftime('%H:%M:%S')))
+    display_messages.refresh()
+    return response
 
 def heic_to_png(input_file, output_file):
     heif_file = pillow_heif.read_heif(input_file)
@@ -64,7 +100,7 @@ async def sendemail(msg_to, subject, content):
 
 messages: List[Tuple[str, str, str, str]] = []
 db = ChatRoomDB('./Database/chatroom.db')
-time_before = 0
+email_time_before = 0
 
 with open('./about.md', 'r', encoding='utf-8') as f:
     about_text = f.read()
@@ -154,12 +190,12 @@ def really_delete_message(num: int, dialog_div) -> None:
 def delete_message(num: int, dialog) -> None:
     global messages
     messages.pop(num)
-    chat_messages.refresh()
+    display_messages.refresh()
     if dialog:
         dialog.close()
 
 @ui.refreshable
-def chat_messages(name, dialog_div) -> None:
+def display_messages(name, dialog_div) -> None:
     for i in range(len(messages)):
         user_id, avatar, text, stamp = messages[i]
         avatar_db = db.get_user_data(user_id)[-1]
@@ -217,6 +253,8 @@ def chat_messages(name, dialog_div) -> None:
             if name == user_id:
                 ui.label('撤回').on('click', lambda num=i: really_delete_message(num, dialog_div)).props('size=xs')\
                     .style('cursor: pointer; color: rgb(100, 100, 100);')
+            if not user_id:
+                ui.label('由AI生成').classes('text-xs text-gray-500').style('margin-left: 3rem;')
 
     ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
@@ -224,7 +262,7 @@ def clean_all_message(dialog):
     global messages
     dialog.close()
     messages = []
-    chat_messages.refresh()
+    display_messages.refresh()
 
 def clean_messages(div):
     with div:
@@ -259,7 +297,7 @@ async def main():
     if not app.storage.user.get('authenticated', False):
         return RedirectResponse('/signin')
 
-    chat_messages.refresh()
+    display_messages.refresh()
 
     def logout():
         print(f'[user] user {user_id} logged out')
@@ -304,7 +342,7 @@ async def main():
 
     async def send() -> None:
         nonlocal file
-        global time_before
+        global email_time_before, ai_messages
         dialog.close()
         if not file:
             text_value = text.value
@@ -319,25 +357,32 @@ async def main():
                 ui.notify('文件不存在', type='warning', position='top')
             else:
                 text_value = 'file::' + file
+        if text_value[:11] == 'mess::CMD::':
+            if text_value[11:] == 'AI::RESET':
+                print('[CMD, AI] Reset AI by hand')
+                ai_messages = [{"role": "system", "content": ai_system},]
+                ui.notify('AI已重置', type='info', position='top', color='green')
+                return 
+            if text_value[11:] == 'HELP':
+                print('[CMD] Help requested')
+                messages.append(('cmd', '', f'mess::@{user_id}:{cmd_help}', datetime.now().strftime('%H:%M:%S')))
+                display_messages.refresh()
+                return
         file = ''
         stamp = datetime.now().strftime('%X')
         messages.append((user_id, '', text_value, stamp))
+        print(f'[message] new message from {user_id}: "{text_value}"')
+        display_messages.refresh()
 
-        # 启用日志会使网站卡顿!
-        try:
-            # db.new_message(user_id, text_value)
-            print(f'[message] new message from {user_id}: "{text_value}"')
-        except UnicodeEncodeError as e:
-            print(f'[message] 编码错误, {e}')
-        chat_messages.refresh()
-        time_now = time()
-        if (time_now - time_before) > 75:
-            time_before = copy(time_now)
-            text_value_send = text_value[6:]
+        text_value_send = text_value[6:]
+        email_time_now = time()
+        if (email_time_now - email_time_before) > 75:
+            email_time_before = copy(email_time_now)
             if text_value[:6] == 'file::':
                 text_value_send += '\n(请在浏览器中查看附件)'
             if 'admin' != user_id:
                 await sendemail('kaixin168kx@163.com', f'你收到了一条来自{user_id}的消息【聊天室】', text_value_send)
+        await ai_message(text_value_send, user_id)
 
     def change_username():
         global replace_username, admin_users
@@ -378,7 +423,7 @@ async def main():
     
     with ui.dialog() as dialog, ui.column().classes('p-2'):
         # ui.upload(on_upload=handle_upload, auto_upload=True).props('accept=.png').classes('max-w-full')
-        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件').classes('max-w-full')
+        ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=60_000_000).classes('max-w-full')
         send_file = ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green x-center')
 
     with ui.dialog() as change_name_dialog, ui.card():
@@ -386,7 +431,7 @@ async def main():
         ui.button('修改', on_click=change_username).classes('bg-green x-center').props('size=md push')
     
     with ui.dialog() as change_avatar_dialog, ui.column().classes('p-2'):
-        ui.upload(on_upload=handle_upload_avatar, auto_upload=True, label='请选择新的头像').classes('max-w-full')
+        ui.upload(on_upload=handle_upload_avatar, auto_upload=True, label='请选择新的头像', on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=15_000_000).classes('max-w-full').props('accept=.png,.jpg,.jpeg,.heic')
         change_avatar = ui.button('修改', on_click=change_useravatar).classes('bg-green x-center').props('size=md push')
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')
@@ -449,7 +494,7 @@ async def main():
     await ui.context.client.connected()  # chat_messages(...) uses run_javascript which is only possible after connecting
 
     with ui.column().classes('w-full max-w-2xl mx-auto items-stretch') as dialog_div:
-        chat_messages(user_id, dialog_div)
+        display_messages(user_id, dialog_div)
 
 @ui.page('/signup')
 def signup() -> None:
@@ -476,9 +521,12 @@ def signup() -> None:
         def try_signup() -> None:
             if '燕湖' not in verify.value:
                 print('school vierify error:', verify.value)
-                ui.notify('学校验证错误', type='warning', position='top')
+                with ui.dialog() as dialog, ui.card().classes('p-2'):
+                    ui.markdown('学校验证错误，请填写**毕业证**上的**小学校名**')
+                    ui.button('好的', on_click=dialog.close).classes('w-full bg-green').props('size=md push')
+                dialog.open()
                 return
-            if not username.value:
+            elif not username.value:
                 print('[user] name {username.value}is empty')
                 ui.notify('用户名不能为空', type='warning', position='top')
             elif not password.value:
@@ -494,7 +542,7 @@ def signup() -> None:
             #     ui.notify('要使用邮箱通知，请输入邮箱', type='warning', position='top')
             else:
                 if password.value == retry_password.value:
-                    try_db = db.sign_up(username.value, password.value, '', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                    try_db = db.sign_up(username.value, password.value, datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '')
                     if try_db == EXISTS:
                         print('[user] username exists:', username.value)
                         ui.notify('用户名已存在', type='warning', position='top')
