@@ -172,12 +172,12 @@ def signin():
 
     return None
 
-def really_delete_message(num: int, dialog_div) -> None:
+def really_delete_message(num: int, dialog_div, act_text) -> None:
     with dialog_div:
         with ui.dialog() as dialog, ui.card().classes('justify-center items-center'):
-                ui.label('真的要撤回这条消息吗？')
+                ui.label(f'确认是否{act_text}该消息(无法恢复)')
                 ui.separator().classes('w-full')
-                ui.label('撤回').classes('text-red').on('click', lambda: delete_message(num, dialog)).style('cursor: pointer;')
+                ui.label(act_text).classes('text-red').on('click', lambda: delete_message(num, dialog)).style('cursor: pointer;')
                 ui.label('取消').on('click', dialog.close).style('cursor: pointer;')
     dialog.open()
 
@@ -245,10 +245,14 @@ def display_messages(name, dialog_div) -> None:
                     else:
                         ui.label(text[6:])
             if name == user_id:
-                ui.label('撤回').on('click', lambda num=i: really_delete_message(num, dialog_div)).props('size=xs')\
+                ui.label('撤回').on('click', lambda num=i: really_delete_message(num, dialog_div, '撤回')).classes('text-xs')\
                     .style('cursor: pointer; color: rgb(100, 100, 100);')
-            if not user_id:
-                ui.label('由AI生成').classes('text-xs text-gray-500').style('margin-left: 3rem;')
+            with ui.row().classes('p-0 gap-5').style('margin-left: 0rem;'):
+                if user_id not in admin_users and name in admin_users:
+                    ui.label('驳回').on('click', lambda num=i: really_delete_message(num, dialog_div, '驳回')).classes('text-xs')\
+                        .style('cursor: pointer; color: rgb(255, 100, 100);')
+                if not user_id:
+                    ui.label('由AI生成').classes('text-xs text-gray-500')
 
     ui.run_javascript('window.scrollTo(0, document.body.scrollHeight)')
 
@@ -265,6 +269,92 @@ def clean_messages(div):
             ui.separator().classes('w-full')
             ui.label('清空').classes('text-red').on('click', lambda: clean_all_message(dialog)).style('cursor: pointer;')
             ui.label('取消').on('click', dialog.close).style('cursor: pointer;')
+    dialog.open()
+
+def cmd_message(text_value, user_id):
+    global ai_messages
+    if text_value[11:] == 'AI::RESET':
+        output = '[CMD, AI] Reset AI by hand'
+        print(output)
+        messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
+        display_messages.refresh()
+        ai_messages = [{"role": "system", "content": ai_system},]
+        ui.notify('AI已重置', type='info', position='top', color='green')
+        return 
+    elif text_value[11:] == 'HELP':
+        print('[CMD] Help requested')
+        messages.append(('cmd', '', f'mess::@{user_id}:{cmd_help}', datetime.now().strftime('%H:%M:%S')))
+        display_messages.refresh()
+        return
+    elif text_value[11:17] == 'SETVAR':
+        if '=' not in text_value[19:]:
+            error = '[CMD] SETVAR command: missing "=" sign'
+            messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
+            display_messages.refresh()
+            print(error)
+            return
+        var_name = text_value[19:].split('=')[0].strip()
+        var_value = text_value[19:].split('=')[1].strip()
+        try:
+            exec(f'{var_name} = {var_value}', globals())
+            output = f'[CMD] Set variable {var_name} to {var_value}'
+            messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
+            display_messages.refresh()
+            print(output)
+        except Exception as e:
+            error = f'[CMD] Error setting variable {var_name}: {e}'
+            messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
+            display_messages.refresh()
+            print(error)
+        return
+    elif text_value[11:17] == 'GETVAR':
+        var_name = text_value[19:].strip()
+        ret = ''
+        try:
+            ret = eval(var_name, globals())
+            output = f'[CMD] Get variable {var_name} value: {ret}'
+            messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
+            display_messages.refresh()
+            print(output)
+        except Exception as e:
+            error = f'[CMD] Error getting variable {var_name}: {e}'
+            messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
+            display_messages.refresh()
+            print(error)
+        return
+
+@ui.refreshable
+def bulletin():
+    with open('Database/bulletin.txt', 'r') as b:
+        content = b.read()
+        if content.strip():
+            with ui.row().classes('w-full items-center gap-2 p-2').style('background-color: rgb(244,185,52)'):
+                ui.label(f'公告：{content}')
+
+def change_bulletin_text(dia: ui.dialog, text: ui.textarea):
+    with open('Database/bulletin.txt', 'w') as b:
+        b.write(text.value)
+    dia.close()
+    bulletin.refresh()
+
+def clean_bulletin_text(text: ui.textarea):
+    with open('Database/bulletin.txt', 'w') as b:
+        b.write('')
+    text.set_value('')
+    bulletin.refresh()
+
+def change_bulletin_dialog(div):
+    with div:
+        with ui.dialog() as dialog, ui.card().classes('justify-center items-center'):
+            ui.label('修改公告内容')
+            ui.separator().classes('w-full')
+            bulletin_text = ui.textarea().props('dense outlined').classes('w-full')
+            with open('Database/bulletin.txt', 'r') as b:
+                bulletin_text.set_value(b.read())
+            with ui.row():
+                ui.label('修改').on('click', lambda: change_bulletin_text(dialog, bulletin_text)).style('cursor: pointer;')
+                ui.label('清空').on('click', lambda: clean_bulletin_text(bulletin_text)).style('cursor: pointer;')
+                ui.label('取消').on('click', dialog.close).style('cursor: pointer;')
     dialog.open()
 
 @ui.page('/')
@@ -301,7 +391,9 @@ async def main():
     def handle_upload(e: events.UploadEventArguments):
         nonlocal file, send_file
         time_id = str(time()) + '_' + datetime.now().strftime('%Y.%m.%d-%H:%M:%S') + '_'
-        file = os.path.join(file_path, time_id + ''.join(random.sample(random_dict, 50)) + '.' + e.name.split('.')[-1])
+        new_name = time_id + ''.join(random.sample(random_dict, 50)) + '.' + e.name.split('.')[-1]
+        file = os.path.join(file_path, new_name)
+        print(f'[file] map: {e.name} -> {new_name}')
         with open(file, 'wb') as f:
             f.write(e.content.read())
         if file.split('.')[-1].lower() == 'heic':
@@ -352,55 +444,7 @@ async def main():
             else:
                 text_value = 'file::' + file
         if text_value[:11] == 'mess::CMD::' and cmd_on and user_id in admin_users:
-            if text_value[11:] == 'AI::RESET':
-                output = '[CMD, AI] Reset AI by hand'
-                print(output)
-                messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
-                display_messages.refresh()
-                ai_messages = [{"role": "system", "content": ai_system},]
-                ui.notify('AI已重置', type='info', position='top', color='green')
-                return 
-            elif text_value[11:] == 'HELP':
-                print('[CMD] Help requested')
-                messages.append(('cmd', '', f'mess::@{user_id}:{cmd_help}', datetime.now().strftime('%H:%M:%S')))
-                display_messages.refresh()
-                return
-            elif text_value[11:17] == 'SETVAR':
-                if '=' not in text_value[19:]:
-                    error = '[CMD] SETVAR command: missing "=" sign'
-                    messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
-                    display_messages.refresh()
-                    print(error)
-                    return
-                var_name = text_value[19:].split('=')[0].strip()
-                var_value = text_value[19:].split('=')[1].strip()
-                try:
-                    exec(f'{var_name} = {var_value}', globals())
-                    output = f'[CMD] Set variable {var_name} to {var_value}'
-                    messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
-                    display_messages.refresh()
-                    print(output)
-                except Exception as e:
-                    error = f'[CMD] Error setting variable {var_name}: {e}'
-                    messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
-                    display_messages.refresh()
-                    print(error)
-                return
-            elif text_value[11:17] == 'GETVAR':
-                var_name = text_value[19:].strip()
-                ret = ''
-                try:
-                    ret = eval(var_name, globals())
-                    output = f'[CMD] Get variable {var_name} value: {ret}'
-                    messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
-                    display_messages.refresh()
-                    print(output)
-                except Exception as e:
-                    error = f'[CMD] Error getting variable {var_name}: {e}'
-                    messages.append(('cmd', '', f'mess::@{user_id}:{error}', datetime.now().strftime('%H:%M:%S')))
-                    display_messages.refresh()
-                    print(error)
-                return
+            cmd_message(text_value, user_id)
         file = ''
         stamp = datetime.now().strftime('%X')
         messages.append((user_id, '', text_value, stamp))
@@ -486,8 +530,8 @@ async def main():
                     with ui.column().classes('gap-1 p-0 w-full items-stretch'):
                         ui.markdown('**可以用这个功能来快速屏蔽或指定用户**').classes('text-xs text-gray-600 p-0 gap-0')
                         mess_head = ui.textarea(label='消息前缀', placeholder='使用回车换行').props('dense outlined input-class=mx-3 autogrow')
-                        # if user_id != '巴儿':
-                        #     mess_head.set_value('^巴儿:')
+                        if user_id == '螃蟹':
+                            mess_head.set_value('@admin:')
                         mess_tail = ui.textarea(label='消息后缀', placeholder='使用回车换行').props('dense outlined input-class=mx-3 autogrow')
                 ui.separator()
                 with ui.column().classes('w-full items-stretch gap-0'):
@@ -500,24 +544,25 @@ async def main():
                     ui.button('清空聊天记录', on_click=lambda: clean_messages(dialog_div), icon='chat').classes('w-full').props('size=md flat')
                     ui.button('查看实时日志', on_click=lambda: ui.navigate.to('/log'), icon='history').classes('w-full').props('size=md flat')
                     ui.button('网页运行代码', on_click=lambda: ui.navigate.to('/code'), icon='code').classes('w-full').props('size=md flat')
+                    ui.button('修改公告内容', on_click=lambda: change_bulletin_dialog(dialog_div), icon='edit').classes('w-full').props('size=md flat')
                 ui.separator()
                 ui.label('用户操作:').classes('text-sm text-gray-600')
-                ui.button('修改账号名称', on_click=change_name_dialog.open, icon='edit').classes('w-full').props('size=md flat')
+                ui.button('修改账号名称', on_click=change_name_dialog.open, icon='supervisor_account').classes('w-full').props('size=md flat')
                 ui.button('修改账号头像', on_click=change_avatar_dialog.open, icon='image').classes('w-full').props('size=md flat')
                 ui.button('退出当前账号', on_click=logout, icon='logout').classes('w-full').props('size=md flat')
                 ui.button('关于本聊天室', on_click=lambda: ui.navigate.to(about), icon='info').classes('w-full').props('size=md flat')
 
-    with ui.header().style('background-color: rgb(147,207,150)').classes('items-center p-3'):
-        with ui.row().classes('w-full items-center gap-2'):
+    with ui.header().style('background-color: rgb(147,207,150)').classes('gap-0 p-0'):
+        with ui.row().classes('w-full items-center gap-2 p-1').style('background-color: rgb(147,207,150)'):
             ui.button(text='请点击我', on_click=left_drawer.toggle).props('flat size=md').classes('text-white').style('font-weight: bold;')
-            time_label = ui.label(text=str(datetime.now().strftime("%X"))).classes('text-lg absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%]')
+            time_label = ui.label(text=str(datetime.now().strftime("%X"))).classes('text-lg absolute left-1/2 translate-x-[-50%]')
             ui.timer(1.0, lambda: time_label.set_text(str(datetime.now().strftime("%X"))))
+        bulletin()
 
     with ui.footer().classes('bg-white p-0').style('margin-top: 0; margin-bottom: 0;'):
         with ui.column().classes('w-full max-w-3xl mx-auto my-6 gap-1 p-3').style('margin-top: 0; margin-bottom: 0;'):
             with ui.row().classes('w-full no-wrap items-center gap-2 p-0'):
-                with ui.button(on_click=dialog.open).props('size=md push fab color=accent padding="sm"')\
-                    .classes('bg-green gap-0'):
+                with ui.button(on_click=dialog.open).props('size=md push fab color=accent padding="sm"').classes('bg-green gap-0'):
                     ui.icon('library_add').style('font-size: 1em')
                 text = ui.textarea(label='请输入消息').props('dense outlined input-class=mx-3 autogrow')\
                     .classes('flex-grow').on('keydown.shift.enter', send)
@@ -644,8 +689,7 @@ def developer() -> None:
     else:
         def change_var():
             try:
-                exec(f'''global {var.value}
-{var.value} = {val.value}''', globals())
+                exec(f'{var.value} = {val.value}', globals())
                 err.set_text(f'output> {var.value} = {val.value}')
             except BaseException as e:
                 err.set_text('output> [ERR: ' + str(e) + ']')
@@ -660,8 +704,7 @@ def developer() -> None:
         def change_obj_var():
             try:
                 var_data = globals()
-                exec(f'''global {var_obj.value}
-ret = {var_obj.value}.{val_obj.value}''', var_data)
+                exec(f'ret = {var_obj.value}.{val_obj.value}', var_data)
                 err_obj.set_text(f'output> {var_data["ret"]}')
             except BaseException as e:
                 err_obj.set_text('output> [ERR: ' + str(e) + ']')
@@ -672,8 +715,10 @@ ret = {var_obj.value}.{val_obj.value}''', var_data)
             ui.link('运行代码', dev_code).classes('text-green')
             ui.link('关于', about).classes('text-green')
             ui.link('主页', main).classes('text-green')
-        ui.button('清空聊天记录', on_click=lambda: clean_messages(dialog_div)).classes('bg-green').props('size=md push')
-        ui.button('更新webinfo', on_click=update_webinfo).classes('bg-green').props('size=md push')
+        ui.label(f'所有用户: {db.get_all_users()}').classes('code-font')
+        with ui.row():
+            ui.button('清空聊天记录', on_click=lambda: clean_messages(dialog_div)).classes('bg-green').props('size=md push')
+            ui.button('更新webinfo', on_click=update_webinfo).classes('bg-green').props('size=md push')
         with ui.card():
             ui.label('修改变量：')
             with ui.row().classes('w-full'):
