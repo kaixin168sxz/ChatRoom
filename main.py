@@ -272,7 +272,7 @@ def clean_messages(div):
     dialog.open()
 
 def cmd_message(text_value, user_id):
-    global ai_messages
+    global ai_messages, messages
     if text_value[11:] == 'AI::RESET':
         output = '[CMD, AI] Reset AI by hand'
         print(output)
@@ -342,6 +342,7 @@ def clean_bulletin_text(text: ui.textarea):
         b.write('')
     text.set_value('')
     bulletin.refresh()
+    change_bulletin_text()
 
 def change_bulletin_dialog(div):
     with div:
@@ -354,6 +355,27 @@ def change_bulletin_dialog(div):
             with ui.row():
                 ui.label('修改').on('click', lambda: change_bulletin_text(dialog, bulletin_text)).style('cursor: pointer;')
                 ui.label('清空').on('click', lambda: clean_bulletin_text(bulletin_text)).style('cursor: pointer;')
+                ui.label('取消').on('click', dialog.close).style('cursor: pointer;')
+    dialog.open()
+
+def change_login_name(dia: ui.dialog, new_id: ui.input):
+    app.storage.user['restore_username'] = app.storage.user.get('username')
+    app.storage.user['username'] = new_id.value
+    dia.close()
+    ui.navigate.to('/')
+
+def restore_login_name(new_id: ui.input):
+    new_id.set_value(app.storage.user.get('restore_username', ''))
+
+def change_login_name_dialog(div):
+    with div:
+        with ui.dialog() as dialog, ui.card().classes('justify-center items-center'):
+            ui.label('修改登录身份(不使用密码登录任意账号)')
+            ui.separator().classes('w-full')
+            new_id = ui.input('要登录的身份').props('dense outlined').classes('w-full')
+            with ui.row():
+                ui.label('修改').on('click', lambda: change_login_name(dialog, new_id)).style('cursor: pointer;')
+                ui.label('恢复').on('click', lambda: restore_login_name(new_id)).style('cursor: pointer;')
                 ui.label('取消').on('click', dialog.close).style('cursor: pointer;')
     dialog.open()
 
@@ -445,6 +467,7 @@ async def main():
                 text_value = 'file::' + file
         if text_value[:11] == 'mess::CMD::' and cmd_on and user_id in admin_users:
             cmd_message(text_value, user_id)
+            return 
         file = ''
         stamp = datetime.now().strftime('%X')
         messages.append((user_id, '', text_value, stamp))
@@ -537,14 +560,18 @@ async def main():
                 with ui.column().classes('w-full items-stretch gap-0'):
                     ui.markdown('**长按或右击保存二维码，通过扫码添加站长微信**').classes('text-xs text-gray-600')
                     ui.image('/web_files/wechat.png')
-                if user_id in admin_users:
+                if user_id in admin_users or app.storage.user.get('restore_username', '') in admin_users:
                     ui.separator()
-                    ui.label('开发者(谨慎使用):').classes('text-sm text-gray-600')
+                    if user_id in admin_users:
+                        ui.label('开发者:').classes('text-sm text-gray-600')
+                    elif app.storage.user.get('restore_username', '') in admin_users:
+                        ui.label('开发者(特殊身份):').classes('text-sm text-gray-600')
                     ui.button('开发者控制台', on_click=lambda: ui.navigate.to('/dev'), icon='developer_mode').classes('w-full').props('size=md flat')
                     ui.button('清空聊天记录', on_click=lambda: clean_messages(dialog_div), icon='chat').classes('w-full').props('size=md flat')
                     ui.button('查看实时日志', on_click=lambda: ui.navigate.to('/log'), icon='history').classes('w-full').props('size=md flat')
                     ui.button('网页运行代码', on_click=lambda: ui.navigate.to('/code'), icon='code').classes('w-full').props('size=md flat')
                     ui.button('修改公告内容', on_click=lambda: change_bulletin_dialog(dialog_div), icon='edit').classes('w-full').props('size=md flat')
+                    ui.button('登录任意账号', on_click=lambda: change_login_name_dialog(dialog_div), icon='credit_card').classes('w-full').props('size=md flat')
                 ui.separator()
                 ui.label('用户操作:').classes('text-sm text-gray-600')
                 ui.button('修改账号名称', on_click=change_name_dialog.open, icon='supervisor_account').classes('w-full').props('size=md flat')
