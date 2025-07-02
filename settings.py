@@ -105,7 +105,7 @@ class Config:
 EXISTS: str = 'Exists'
 NO_EXISTS: str = 'NoExists'
 OK: str = 'DB-200'
-VERSION = '1.0 beta1'
+VERSION = '1.0 beta2'
 
 email_on = True
 ai_on = True
@@ -136,5 +136,5 @@ allow_blackuser = {'/signin', '/signup', '/black_user'}
 use_markdown = Config(f'{database_path}/users.json', 'markdown')
 admin_users = Config(f'{database_path}/users.json', 'admin')
 use_html = Config(f'{database_path}/users.json', 'html')
-# web_info = f'**苏ICP备2025180468号 | © 2025 宋昕哲 | v{VERSION}**'
-web_info = f'**v{VERSION}**'
+web_info = f'**苏ICP备2025180468号 | © 2025 宋昕哲 | v{VERSION}**'
+# web_info = f'**v{VERSION}**'
