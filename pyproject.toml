@@ -1,7 +1,7 @@
 [project]
 name = "chatroom"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.0beta1"
+description = "网页聊天室"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
