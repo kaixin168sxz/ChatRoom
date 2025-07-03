@@ -204,22 +204,16 @@ def display_messages(name, dialog_div) -> None:
 
         if name not in [*admin_users, user_id]:
             # 如果消息开头为@并且用户没有被@，则不显示消息（只有被@才显示）
-            if text[6] == '@':
-                name_list = text[7:].split(':')[0]
-                if ' ' in name_list:
-                    name_list = name_list.split(' ')
-                else:
-                    name_list = [name_list, ]
+            
+            name_list = text[7:].split(':')[0]
+            if ' ' in name_list:
+                name_list = name_list.split(' ')
+            else:
+                name_list = [name_list, ]
                 if name not in name_list:
-                    continue
-            if text[6] == '^':
-                name_list = text[7:].split(':')[0]
-                if ' ' in name_list:
-                    name_list = name_list.split(' ')
+                    if text[6] == '@': continue
                 else:
-                    name_list = [name_list, ]
-                if name in name_list:
-                    continue
+                    if text[6] == '^': continue
 
         show_id = user_id
         if user_id in replace_username.keys():
@@ -272,7 +266,7 @@ def clean_messages(div):
     dialog.open()
 
 def cmd_message(text_value, user_id):
-    global ai_messages, messages
+    global ai_messages, messages, ai_on
     if text_value[11:] == 'AI::RESET':
         output = '[CMD, AI] Reset AI by hand'
         print(output)
@@ -281,6 +275,14 @@ def cmd_message(text_value, user_id):
         ai_messages = [{"role": "system", "content": ai_system},]
         ui.notify('AI已重置', type='info', position='top', color='green')
         return 
+    elif text_value[11:18] == 'AI::SET':
+        stat = text_value.split('::')[-1]
+        if stat.lower() in ('open', 'on', 'yes'): ai_on = True
+        elif stat.lower() in ('close', 'off', 'no'): ai_on = False
+        output = f'[CMD, AI] AI is {"opened" if ai_on else "closed"}'
+        messages.append(('cmd', '', f'mess::@{user_id}:{output}', datetime.now().strftime('%H:%M:%S')))
+        display_messages.refresh()
+        ui.notify(f'AI已{"打开" if ai_on else "关闭"}', type='info', position='top', color='green')
     elif text_value[11:] == 'HELP':
         print('[CMD] Help requested')
         messages.append(('cmd', '', f'mess::@{user_id}:{cmd_help}', datetime.now().strftime('%H:%M:%S')))
@@ -329,11 +331,11 @@ def bulletin():
         content = b.read()
         if content.strip():
             with ui.row().classes('w-full items-center gap-2 p-2').style('background-color: rgb(244,185,52)'):
-                ui.label(f'公告：{content}')
+                ui.label(f'公告：{content}').style('font-weight: bold;')
 
 def change_bulletin_text(dia: ui.dialog, text: ui.textarea):
     with open('Database/bulletin.txt', 'w') as b:
-        b.write(text.value)
+        b.write(text.value.replace('\n', ' '))
     dia.close()
     bulletin.refresh()
 
@@ -346,8 +348,8 @@ def clean_bulletin_text(text: ui.textarea):
 
 def change_bulletin_dialog(div):
     with div:
-        with ui.dialog() as dialog, ui.card().classes('justify-center items-center'):
-            ui.label('修改公告内容')
+        with ui.dialog() as dialog, ui.card().classes('justify-center items-center w-full'):
+            ui.label('修改公告显示的内容')
             ui.separator().classes('w-full')
             bulletin_text = ui.textarea().props('dense outlined').classes('w-full')
             with open('Database/bulletin.txt', 'r') as b:
@@ -359,7 +361,10 @@ def change_bulletin_dialog(div):
     dialog.open()
 
 def change_login_name(dia: ui.dialog, new_id: ui.input):
-    app.storage.user['restore_username'] = app.storage.user.get('username')
+    if not app.storage.user.get('restore_username', False):
+        app.storage.user['restore_username'] = app.storage.user.get('username')
+    if new_id.value == app.storage.user.get('restore_username', False):
+        app.storage.user['restore_username'] = False
     app.storage.user['username'] = new_id.value
     dia.close()
     ui.navigate.to('/')
@@ -540,7 +545,7 @@ async def main():
     with ui.left_drawer().style('background-color: rgb(233, 247, 239)') as left_drawer:
         with ui.card().style('background-color: rgb(147,207,150)').classes('p-1 w-full').props('flat bordered'):
             with ui.row().classes('items-center gap-3'):
-                with ui.avatar(color="#B0B0B0", size='lg').on('click', lambda: ui.navigate.to(main)):
+                with ui.avatar(color="#B0B0B0", size='lg'):
                     ui.image(avatar)
                 with ui.column().classes('gap-0 p-0'):
                     ui.label(user_id[:9] + '...' if len(user_id) > 20 else user_id).classes('text-white').style('font-weight: bold;')

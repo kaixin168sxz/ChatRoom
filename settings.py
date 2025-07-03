@@ -108,7 +108,7 @@ OK: str = 'DB-200'
 VERSION = '1.0 beta2'
 
 email_on = True
-ai_on = True
+ai_on = False
 cmd_on = True
 ai_base_url = "https://api.deepseek.com"
 ai_model = "deepseek-chat"
