@@ -278,7 +278,13 @@ class ChatRoomDB(Sqlite3DB):
         """
         print(f'[user] Changing {user}\'s avatar to {avatar}...')
         try:
+            user_data = self.get_user_data(user)
+            if user_data == NO_EXISTS: return True, f'找不到用户{user}'
+            if user_data[-1].split('/')[-1] not in ('1.png', 'deepseek.png'):
+                os.remove(user_data[-1])
             self.modify_data(self.user_table, self.user_cols[-1], (self.user_cols[0], user), avatar)
             print(f'[user] {user}\'s avatar has changed to {avatar}.')
+            return False, None
         except BaseException as e:
             print(f'[user] Changing user\'s avatar: {e}')
+            return True, e

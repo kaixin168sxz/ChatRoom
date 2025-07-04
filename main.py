@@ -348,23 +348,22 @@ def clean_bulletin_text(text: ui.textarea):
 
 def change_bulletin_dialog(div):
     with div:
-        with ui.dialog() as dialog, ui.card().classes('justify-center items-center w-full'):
+        with ui.dialog() as dialog, ui.card().classes('justify-center items-center w-full').style(f'background-color: rgb(247,255,247)'):
             ui.label('修改公告显示的内容')
-            ui.separator().classes('w-full')
             bulletin_text = ui.textarea().props('dense outlined').classes('w-full')
             with open('Database/bulletin.txt', 'r') as b:
                 bulletin_text.set_value(b.read())
             with ui.row():
                 ui.label('修改').on('click', lambda: change_bulletin_text(dialog, bulletin_text)).style('cursor: pointer;')
-                ui.label('清空').on('click', lambda: clean_bulletin_text(bulletin_text)).style('cursor: pointer;')
-                ui.label('取消').on('click', dialog.close).style('cursor: pointer;')
+                ui.label('清空').on('click', lambda: clean_bulletin_text(bulletin_text)).style('cursor: pointer;').classes('text-red')
+                ui.label('取消').on('click', dialog.close).style('cursor: pointer;').classes('text-red')
     dialog.open()
 
 def change_login_name(dia: ui.dialog, new_id: ui.input):
     if not app.storage.user.get('restore_username', False):
         app.storage.user['restore_username'] = app.storage.user.get('username')
     if new_id.value == app.storage.user.get('restore_username', False):
-        app.storage.user['restore_username'] = False
+        app.storage.user.pop('restore_username')
     app.storage.user['username'] = new_id.value
     dia.close()
     ui.navigate.to('/')
@@ -374,24 +373,17 @@ def restore_login_name(new_id: ui.input):
 
 def change_login_name_dialog(div):
     with div:
-        with ui.dialog() as dialog, ui.card().classes('justify-center items-center'):
+        with ui.dialog() as dialog, ui.card().classes('justify-center items-center').style(f'background-color: rgb(247,255,247)'):
             ui.label('修改登录身份(不使用密码登录任意账号)')
-            ui.separator().classes('w-full')
             new_id = ui.input('要登录的身份').props('dense outlined').classes('w-full')
             with ui.row():
                 ui.label('修改').on('click', lambda: change_login_name(dialog, new_id)).style('cursor: pointer;')
-                ui.label('恢复').on('click', lambda: restore_login_name(new_id)).style('cursor: pointer;')
-                ui.label('取消').on('click', dialog.close).style('cursor: pointer;')
+                ui.label('恢复').on('click', lambda: restore_login_name(new_id)).style('cursor: pointer;').classes('text-red')
+                ui.label('取消').on('click', dialog.close).style('cursor: pointer;').classes('text-red')
     dialog.open()
 
 @ui.page('/')
 async def main():
-    ui.add_css('''
-        .x-center {
-            margin: auto;
-            width: 50%;
-        }
-        ''')
     ui.colors(primary='rgb(68,157,72)')
     file = ''
     avatar_file = ''
@@ -436,7 +428,7 @@ async def main():
         ui.notify('附件已上传', position='top', type='info', color='green')
     
     def handle_upload_avatar(e: events.UploadEventArguments):
-        nonlocal change_avatar, avatar_file
+        nonlocal avatar_file
         if e.name.split('.')[-1].lower() not in ['png', 'jpg', 'jpeg', 'heic']:
             ui.notify('文件格式错误', type='warning', position='top')
             return 
@@ -523,29 +515,36 @@ async def main():
         if not os.path.exists(avatar_file):
             ui.notify('未找到文件', type='warning', position='top')
             return
-        db.change_useravatar(user_id, avatar_file)
+        res, err = db.change_useravatar(user_id, avatar_file)
+        if res:
+            ui.notify(err, type='warning', position='top', color='red')
+            return 
         avatar_file = ''
         ui.notify('已修改头像')
         ui.navigate.to('/')
     
-    with ui.dialog() as dialog, ui.column().classes('p-2'):
-        # ui.upload(on_upload=handle_upload, auto_upload=True).props('accept=.png').classes('max-w-full')
+    with ui.dialog() as dialog, ui.card().classes('p-2 justify-center items-center').style(f'background-color: rgb(247,255,247)'):
         ui.upload(on_upload=handle_upload, auto_upload=True, label='请选择附件', on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=60_000_000).classes('max-w-full')
-        send_file = ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green x-center')
+        send_file = ui.button(icon='send', text='发送', on_click=send).props('size=md push').classes('bg-green w-full')
 
-    with ui.dialog() as change_name_dialog, ui.card():
-        new_name_input = ui.input('新的用户名', placeholder='请输入新的用户名').props('dense outlined').classes('w-full').on('keydown.enter', change_username)
-        ui.button('修改', on_click=change_username).classes('bg-green x-center').props('size=md push')
+    with ui.dialog() as change_name_dialog, ui.card().classes('justify-center items-center').style(f'background-color: rgb(247,255,247)'):
+        ui.label('修改当前账号的用户名')
+        new_name_input = ui.input('请输入新的用户名').props('dense outlined').classes('w-full').on('keydown.enter', change_username)
+        with ui.row().classes('p-0'):
+            ui.label('修改').on('click', change_username).style('cursor: pointer;')
+            ui.label('关闭').classes('text-red').on('click', change_name_dialog.close).style('cursor: pointer;')
     
-    with ui.dialog() as change_avatar_dialog, ui.column().classes('p-2'):
+    with ui.dialog() as change_avatar_dialog, ui.card().classes('p-2 justify-center items-center').style(f'background-color: rgb(247,255,247)'):
         ui.upload(on_upload=handle_upload_avatar, auto_upload=True, label='请选择新的头像', on_rejected=lambda: ui.notify('文件过大，拒绝上传'), max_files=1, max_file_size=15_000_000).classes('max-w-full').props('accept=.png,.jpg,.jpeg,.heic')
-        change_avatar = ui.button('修改', on_click=change_useravatar).classes('bg-green x-center').props('size=md push')
+        with ui.row().classes('p-0'):
+            ui.label('修改').on('click', change_useravatar).style('cursor: pointer;')
+            ui.label('关闭').classes('text-red').on('click', change_avatar_dialog.close).style('cursor: pointer;')
 
     ui.query('body').style(f'background-color: rgb(247,255,247)')
     with ui.left_drawer().style('background-color: rgb(233, 247, 239)') as left_drawer:
         with ui.card().style('background-color: rgb(147,207,150)').classes('p-1 w-full').props('flat bordered'):
             with ui.row().classes('items-center gap-3'):
-                with ui.avatar(color="#B0B0B0", size='lg'):
+                with ui.avatar(color="#A9C7B7", size='lg'):
                     ui.image(avatar)
                 with ui.column().classes('gap-0 p-0'):
                     ui.label(user_id[:9] + '...' if len(user_id) > 20 else user_id).classes('text-white').style('font-weight: bold;')
